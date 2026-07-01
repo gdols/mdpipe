@@ -21,7 +21,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>mdpipe</ToolCommandName>
     <PackageId>MdPipe</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Guillermo Dols</Authors>
     <Description>Convert documents to Markdown using Microsoft MarkItDown, with a version-gated compatibility manifest. Not affiliated with Microsoft.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
