@@ -185,10 +185,42 @@ public sealed class PythonEnvironmentManager(
 
     private static async Task DownloadFileAsync(HttpClient http, string url, string destPath, CancellationToken cancellationToken)
     {
-        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        await using var fileStream = File.Create(destPath);
-        await response.Content.CopyToAsync(fileStream, cancellationToken);
+        try
+        {
+            using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            await using var fileStream = File.Create(destPath);
+            await response.Content.CopyToAsync(fileStream, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            throw new PythonEnvironmentException(
+                $"Couldn't download from {new Uri(url).Host}. A proxy, firewall, VPN or antivirus may be blocking it. " +
+                $"Details: {ex.Message}", ex);
+        }
+    }
+
+    // The system proxy, detected once. Browsers and .NET use the Windows proxy automatically, but the
+    // bundled pip does NOT — so on a corporate network "you have internet" yet pip still can't reach PyPI.
+    // We forward the proxy to the Python child processes via the HTTP(S)_PROXY environment variables.
+    private static readonly (string? Http, string? Https) SystemProxy = DetectSystemProxy();
+
+    private static (string?, string?) DetectSystemProxy()
+    {
+        try
+        {
+            var proxy = HttpClient.DefaultProxy;
+            string? ProxyFor(string url)
+            {
+                var uri = new Uri(url);
+                return proxy is null || proxy.IsBypassed(uri) ? null : proxy.GetProxy(uri)?.AbsoluteUri;
+            }
+            return (ProxyFor("http://pypi.org"), ProxyFor("https://pypi.org"));
+        }
+        catch
+        {
+            return (null, null);
+        }
     }
 
     /// <summary>Rewrites the embeddable's <c>python*._pth</c> so it loads site-packages and runs site init.</summary>

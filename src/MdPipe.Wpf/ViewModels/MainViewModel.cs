@@ -134,10 +134,10 @@ public sealed class MainViewModel : ObservableObject
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
-        catch (PythonEnvironmentException)
+        catch (PythonEnvironmentException ex)
         {
-            // Setup ran but installing MarkItDown failed — most often no internet (pip can't reach PyPI).
-            // If a working MarkItDown is already installed, keep going anyway.
+            // Setup ran but couldn't finish (usually the first-time download). If a working MarkItDown is
+            // already installed, just carry on; otherwise show what actually went wrong.
             var envInfo = await _environmentManager.GetEnvironmentInfoAsync();
             if (envInfo.IsReady && envInfo.InstalledMarkItDownVersion is not null)
             {
@@ -147,11 +147,12 @@ public sealed class MainViewModel : ObservableObject
             else
             {
                 IsReady = false;
-                StatusMessage = "Couldn't install MarkItDown. Check your internet connection and restart.";
+                StatusMessage = "Couldn't finish setting up MarkItDown.";
                 MessageBox.Show(
-                    "MdPipe needs an internet connection the first time to download MarkItDown from PyPI.\n\n" +
-                    "Connect to the internet and reopen the app.",
-                    "No connection",
+                    "MdPipe couldn't finish its first-time setup.\n\n" + ex.Message + "\n\n" +
+                    "The first run needs internet to download from python.org and PyPI. On a company " +
+                    "network, a proxy, firewall, VPN or antivirus can block it.",
+                    "Setup couldn't finish",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
@@ -161,6 +162,14 @@ public sealed class MainViewModel : ObservableObject
             IsReady = false;
             StatusMessage = "Couldn't prepare MarkItDown.";
             MessageBox.Show(ex.Message, "Error preparing MdPipe", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        catch (Exception ex)
+        {
+            IsReady = false;
+            StatusMessage = "Couldn't finish setup.";
+            MessageBox.Show(
+                "MdPipe couldn't finish setting up.\n\n" + ex.Message,
+                "Setup couldn't finish", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
