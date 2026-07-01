@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MdPipe.Cli/MdPipe.Cli.csproj" />
+    <Project Path="src/MdPipe.Core/MdPipe.Core.csproj" />
+    <Project Path="src/MdPipe.Infrastructure/MdPipe.Infrastructure.csproj" />
+    <Project Path="src/MdPipe.Wpf/MdPipe.Wpf.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MdPipe.Core.Tests/MdPipe.Core.Tests.csproj" />
+    <Project Path="tests/MdPipe.Infrastructure.Tests/MdPipe.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="MdPipe">
+  <defs>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#428DFF"/>
+      <stop offset="1" stop-color="#1D48CD"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="57" ry="57" fill="url(#badge)"/>
+  <rect width="256" height="256" rx="57" ry="57" fill="url(#gloss)"/>
+  <rect x="8" y="8" width="240" height="240" rx="49" ry="49" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="3"/>
+  <!-- Straight-line glyph, fused into one solid shape (bar + shaft + arrow head). -->
+  <rect x="75.5" y="71.7" width="105" height="25.1" fill="#FFFFFF"/>
+  <rect x="113" y="90" width="30" height="61" fill="#FFFFFF"/>
+  <polygon points="81.9,143.4 174.1,143.4 128,202.2" fill="#FFFFFF"/>
+</svg>

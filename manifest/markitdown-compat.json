@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "stableVersion": "0.1.6",
+  "minimumVersion": "0.1.4",
+  "compatibleVersions": [
+    "0.1.4",
+    "0.1.5",
+    "0.1.6"
+  ],
+  "updatedAt": "2026-06-30",
+  "notes": "Validated against MdPipe 1.0.0. Bundled as the offline fallback baseline."
+}

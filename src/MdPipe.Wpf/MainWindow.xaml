@@ -1,0 +1,196 @@
+<Window x:Class="MdPipe.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:MdPipe.Wpf.Converters"
+        xmlns:vm="clr-namespace:MdPipe.Wpf.ViewModels"
+        Title="MdPipe — Markdown Converter"
+        Icon="/Assets/icon.png"
+        Height="640" Width="780"
+        MinHeight="520" MinWidth="640"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Background}"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <conv:StatusToBrushConverter x:Key="StatusToBrush" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,18">
+            <Image Source="/Assets/icon.png" Width="54" Height="54" Margin="0,0,15,0"
+                   VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock FontSize="30" FontWeight="Bold">
+                    <Run Text="Md" Foreground="{StaticResource Accent}" /><Run Text="Pipe" Foreground="{StaticResource TextPrimary}" />
+                </TextBlock>
+                <TextBlock Text="Convert your documents to Markdown. Hassle-free."
+                           FontSize="14" Foreground="{StaticResource TextMuted}" Margin="0,1,0,0" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Status banner -->
+        <Border Grid.Row="1" Background="{StaticResource Surface}" CornerRadius="10"
+                BorderBrush="{StaticResource Border}" BorderThickness="1" Padding="16,12" Margin="0,0,0,16">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Ellipse Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{StaticResource TextMuted}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsReady}" Value="True">
+                                            <Setter Property="Fill" Value="{StaticResource Success}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="14" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Reinstall" Style="{StaticResource GhostButton}"
+                            Command="{Binding ReinstallCommand}" Margin="12,0,0,0" VerticalAlignment="Center"
+                            Visibility="{Binding ShowReinstall, Converter={StaticResource BoolToVis}}" />
+                </Grid>
+                <ProgressBar IsIndeterminate="True" Height="3" Margin="0,10,0,0" BorderThickness="0"
+                             Background="Transparent" Foreground="{StaticResource Accent}"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Drop zone -->
+        <Border Grid.Row="2" x:Name="DropZone" AllowDrop="True"
+                Drop="DropZone_Drop" DragEnter="DropZone_DragEnter" DragLeave="DropZone_DragLeave"
+                MouseLeftButtonUp="DropZone_Click"
+                Background="{StaticResource Surface}" CornerRadius="12"
+                BorderBrush="{StaticResource Accent}" BorderThickness="2"
+                Padding="24" Margin="0,0,0,16" Cursor="Hand">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Opacity" Value="0.85" />
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Opacity" Value="1" />
+                            <Setter Property="Background" Value="#EFF6FF" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="Drag your files here" FontSize="16" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                <TextBlock Text="or click to choose them  ·  PDF, Word, Excel, PowerPoint, HTML, images…"
+                           FontSize="12.5" HorizontalAlignment="Center"
+                           Foreground="{StaticResource TextMuted}" Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- File list -->
+        <Border Grid.Row="3" Background="{StaticResource Surface}" CornerRadius="10"
+                BorderBrush="{StaticResource Border}" BorderThickness="1">
+            <Grid>
+                <TextBlock Text="No files added yet."
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextMuted}" FontSize="13">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Files.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ListBox ItemsSource="{Binding Files}" BorderThickness="0" Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="Padding" Value="0" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:FileItemViewModel}">
+                            <Border Padding="14,10" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding FileName}" FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Folder}" FontSize="11.5"
+                                                   Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding StatusText}" FontSize="12.5"
+                                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0"
+                                               Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Output folder row -->
+        <Grid Grid.Row="4" Margin="0,14,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Save to:" FontSize="13" VerticalAlignment="Center"
+                       Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
+            <TextBlock Grid.Column="1" Text="{Binding OutputFolderDisplay}" FontSize="13" VerticalAlignment="Center"
+                       Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+            <Button Grid.Column="2" Content="Change…" Style="{StaticResource GhostButton}"
+                    Command="{Binding ChooseOutputFolderCommand}" />
+        </Grid>
+
+        <!-- Action bar -->
+        <Grid Grid.Row="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="Clear list" Style="{StaticResource GhostButton}"
+                    Command="{Binding ClearCommand}" Margin="0,0,10,0" />
+            <Button Grid.Column="1" Content="Open folder" Style="{StaticResource GhostButton}"
+                    Command="{Binding OpenOutputFolderCommand}" />
+            <Button Grid.Column="3" Content="Convert to Markdown" Style="{StaticResource PrimaryButton}"
+                    Command="{Binding ConvertCommand}" />
+        </Grid>
+
+        <!-- Footer / credit -->
+        <TextBlock Grid.Row="6" HorizontalAlignment="Center" Margin="0,16,0,0"
+                   FontSize="12" Foreground="{StaticResource TextMuted}">
+            <Hyperlink Click="HelpButton_Click" Foreground="{StaticResource Accent}"
+                       TextDecorations="None">About</Hyperlink>
+        </TextBlock>
+    </Grid>
+</Window>

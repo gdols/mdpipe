@@ -1,0 +1,17 @@
+using System.Windows.Input;
+
+namespace MdPipe.Wpf.Mvvm;
+
+/// <summary>Simple ICommand implementation for binding buttons to view-model methods.</summary>
+public sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
+{
+    public event EventHandler? CanExecuteChanged
+    {
+        add => CommandManager.RequerySuggested += value;
+        remove => CommandManager.RequerySuggested -= value;
+    }
+
+    public bool CanExecute(object? parameter) => canExecute?.Invoke() ?? true;
+
+    public void Execute(object? parameter) => execute();
+}

@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MdPipe.Core\MdPipe.Core.csproj" />
+    <ProjectReference Include="..\MdPipe.Infrastructure\MdPipe.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.9" />
+    <PackageReference Include="System.CommandLine" Version="3.0.0-preview.5.26302.115" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Packaged as a .NET global tool: `dotnet tool install -g MdPipe` then `mdpipe ...` -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>mdpipe</ToolCommandName>
+    <PackageId>MdPipe</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Guillermo Dols</Authors>
+    <Description>Convert documents to Markdown using Microsoft MarkItDown, with a version-gated compatibility manifest. Not affiliated with Microsoft.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/gdols/MdPipe</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/gdols/MdPipe</RepositoryUrl>
+    <PackageTags>markdown;markitdown;converter;cli;dotnet-tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+_ReSharper*/
+*.DotSettings.user
+
+## Build output
+publish/
+
+## Test results
+TestResults/
+*.trx
+coverage/
+*.coveragexml
+
+## Secrets / local overrides
+appsettings.Local.json
+*.secrets.json
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Editor
+.idea/
+*.swp
