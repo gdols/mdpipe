@@ -57,7 +57,7 @@ public sealed class PythonEnvironmentManager(
             {
                 IsReady = false,
                 PythonExecutable = python,
-                MissingReason = "The Python environment is broken (standard library not found); it will be rebuilt."
+                MissingReason = "The Python environment isn't usable (too old or incomplete); it will be rebuilt."
             };
 
         var version = await GetInstalledVersionAsync(python, cancellationToken);
@@ -92,7 +92,9 @@ public sealed class PythonEnvironmentManager(
         // Install the [all] extra so every converter works (PDF, Word, Excel, PowerPoint, audio…).
         // The base 'markitdown' package ships without the optional format dependencies.
         logger.LogInformation("Installing markitdown[all]=={Version} into {Exe}", markItDownVersion, target);
-        await RunProcessAsync(target, $"-m pip install \"markitdown[all]=={markItDownVersion}\" --quiet", cancellationToken);
+        // Deliberately NOT --quiet: if pip can't reach PyPI (proxy, firewall, SSL interception…) we want its
+        // real explanation in stderr, not a bare "No matching distribution found".
+        await RunProcessAsync(target, $"-m pip install \"markitdown[all]=={markItDownVersion}\" --disable-pip-version-check", cancellationToken);
         logger.LogInformation("Setup complete");
     }
 
@@ -286,11 +288,13 @@ public sealed class PythonEnvironmentManager(
         {
             try
             {
-                // Only accept an interpreter that can locate a real on-disk standard library. A relocated or
-                // partially-uninstalled Python still prints sys.executable and exits 0 — so validate here.
+                // Only accept a Python MarkItDown can actually run on: recent enough (3.10+, its floor) and
+                // with a real on-disk standard library. An ancient, relocated or partial Python still prints
+                // sys.executable and exits 0, so we check both here rather than trusting it — otherwise the
+                // venv we build on top of it is doomed (e.g. Python 3.6 ships a pip too old to reach PyPI).
                 var output = await RunProcessAsync(
                     exe,
-                    argPrefix + "-c \"import sys,os,sysconfig; print(sys.executable if os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py')) else '')\"",
+                    argPrefix + "-c \"import sys,os,sysconfig; print(sys.executable if (sys.version_info >= (3,10) and os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py'))) else '')\"",
                     cts.Token, captureOutput: true);
 
                 var path = output.Trim();
@@ -300,7 +304,7 @@ public sealed class PythonEnvironmentManager(
                     return path;
                 }
 
-                logger.LogWarning("Ignoring '{Exe}': its Python has no usable standard library.", exe);
+                logger.LogWarning("Ignoring '{Exe}': its Python is too old (need 3.10+) or has no usable standard library.", exe);
             }
             catch { /* not available or stub failed — try the next candidate */ }
         }
@@ -309,10 +313,10 @@ public sealed class PythonEnvironmentManager(
     }
 
     /// <summary>
-    /// True only if the interpreter has a standard library it can actually reach — either on disk
-    /// (Lib/os.py, for normal installs and venvs) or in the zip next to python.exe (for the embeddable).
-    /// Catches a base Python that was moved or partially uninstalled — symptom: "Could not find platform
-    /// independent libraries" plus conversions that work from some working directories but fail from others.
+    /// True only if this interpreter is actually usable for MdPipe: recent enough for MarkItDown (3.10+) and
+    /// with a standard library it can reach — either on disk (Lib/os.py, for normal installs and venvs) or in
+    /// the zip next to python.exe (for the embeddable). This also flags an already-built environment as
+    /// unusable when its base Python is too old or was moved/uninstalled, so setup rebuilds it cleanly.
     /// </summary>
     private async Task<bool> IsHealthyAsync(string pythonExe, CancellationToken cancellationToken)
     {
@@ -320,7 +324,7 @@ public sealed class PythonEnvironmentManager(
         {
             var output = await RunProcessAsync(
                 pythonExe,
-                "-c \"import os,sys,sysconfig; z=os.path.join(os.path.dirname(sys.executable),f'python{sys.version_info.major}{sys.version_info.minor}.zip'); print('OK' if (os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py')) or os.path.isfile(z)) else '')\"",
+                "-c \"import os,sys,sysconfig; z=os.path.join(os.path.dirname(sys.executable),f'python{sys.version_info.major}{sys.version_info.minor}.zip'); ok = sys.version_info >= (3,10) and (os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py')) or os.path.isfile(z)); print('OK' if ok else '')\"",
                 cancellationToken, captureOutput: true);
             return output.Trim() == "OK";
         }
