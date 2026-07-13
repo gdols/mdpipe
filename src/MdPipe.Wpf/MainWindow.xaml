@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:MdPipe.Wpf.Converters"
         xmlns:vm="clr-namespace:MdPipe.Wpf.ViewModels"
-        Title="MdPipe — Markdown Converter"
+        Title="MdPipe - Markdown Converter"
         Icon="/Assets/icon.png"
         Height="640" Width="780"
         MinHeight="520" MinWidth="640"
@@ -27,7 +27,6 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,18">
             <Image Source="/Assets/icon.png" Width="54" Height="54" Margin="0,0,15,0"
                    VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -40,7 +39,6 @@
             </StackPanel>
         </StackPanel>
 
-        <!-- Status banner -->
         <Border Grid.Row="1" Background="{StaticResource Surface}" CornerRadius="10"
                 BorderBrush="{StaticResource Border}" BorderThickness="1" Padding="16,12" Margin="0,0,0,16">
             <StackPanel>
@@ -75,7 +73,6 @@
             </StackPanel>
         </Border>
 
-        <!-- Drop zone -->
         <Border Grid.Row="2" x:Name="DropZone" AllowDrop="True"
                 Drop="DropZone_Drop" DragEnter="DropZone_DragEnter" DragLeave="DropZone_DragLeave"
                 MouseLeftButtonUp="DropZone_Click"
@@ -102,7 +99,6 @@
             </StackPanel>
         </Border>
 
-        <!-- File list -->
         <Border Grid.Row="3" Background="{StaticResource Surface}" CornerRadius="10"
                 BorderBrush="{StaticResource Border}" BorderThickness="1">
             <Grid>
@@ -155,7 +151,6 @@
             </Grid>
         </Border>
 
-        <!-- Output folder row -->
         <Grid Grid.Row="4" Margin="0,14,0,14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -170,7 +165,6 @@
                     Command="{Binding ChooseOutputFolderCommand}" />
         </Grid>
 
-        <!-- Action bar -->
         <Grid Grid.Row="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -186,7 +180,6 @@
                     Command="{Binding ConvertCommand}" />
         </Grid>
 
-        <!-- Footer / credit -->
         <TextBlock Grid.Row="6" HorizontalAlignment="Center" Margin="0,16,0,0"
                    FontSize="12" Foreground="{StaticResource TextMuted}">
             <Hyperlink Click="HelpButton_Click" Foreground="{StaticResource Accent}"

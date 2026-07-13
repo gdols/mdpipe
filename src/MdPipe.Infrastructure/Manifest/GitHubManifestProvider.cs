@@ -6,11 +6,6 @@ using Microsoft.Extensions.Logging;
 
 namespace MdPipe.Infrastructure.Manifest;
 
-/// <summary>
-/// Fetches the MarkItDown compatibility manifest from GitHub raw content.
-/// The manifest URL is intentionally fixed so only the repo owner can update
-/// which MarkItDown versions are considered safe.
-/// </summary>
 public sealed class GitHubManifestProvider(
     HttpClient httpClient,
     ILogger<GitHubManifestProvider> logger) : IManifestProvider

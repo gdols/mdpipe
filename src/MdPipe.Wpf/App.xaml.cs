@@ -35,7 +35,6 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Safety net: never let an unhandled UI-thread exception kill the app silently.
         DispatcherUnhandledException += (_, args) =>
         {
             MessageBox.Show(
@@ -49,7 +48,6 @@ public partial class App : Application
         window.DataContext = viewModel;
         window.Show();
 
-        // Auto-prepare / auto-update MarkItDown in the background after the window appears.
         await viewModel.InitializeAsync();
     }
 

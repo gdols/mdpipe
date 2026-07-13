@@ -8,19 +8,10 @@ using Microsoft.Extensions.Logging;
 
 namespace MdPipe.Infrastructure.Python;
 
-/// <summary>
-/// Owns MdPipe's private Python environment. Strategy, in order of preference:
-///   1. A healthy system Python (creates a fast, shared venv under AppData).
-///   2. A self-contained <b>embedded Python</b> downloaded into MdPipe's own folder, used when no usable
-///      system Python exists or it cannot create a venv (e.g. the Microsoft Store edition).
-/// MdPipe never installs into, modifies, or repairs the system Python — everything lives locally so it
-/// cannot disturb other environments.
-/// </summary>
 public sealed class PythonEnvironmentManager(
     ILogger<PythonEnvironmentManager> logger,
     IHttpClientFactory httpClientFactory) : IPythonEnvironmentManager
 {
-    // Version of the official Windows "embeddable" Python used when we must bring our own.
     private const string EmbeddedPythonVersion = "3.12.7";
 
     private static readonly string Root = Path.Combine(
@@ -35,12 +26,10 @@ public sealed class PythonEnvironmentManager(
 
     private static string EmbedPython => Path.Combine(EmbedRoot, "python.exe");
 
-    /// <summary>The interpreter MdPipe should use right now, or null if none is set up yet.</summary>
     private static string? ReadyPython =>
         File.Exists(VenvPython) ? VenvPython :
         File.Exists(EmbedPython) ? EmbedPython : null;
 
-    /// <summary>Candidate launchers, in order of preference, as (executable, argPrefix).</summary>
     private static IEnumerable<(string Exe, string ArgPrefix)> LauncherCandidates =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? [("py", "-3 "), ("python", ""), ("python3", "")]   // 'py' launcher is never a Store stub
@@ -76,24 +65,20 @@ public sealed class PythonEnvironmentManager(
     {
         if (forceReinstall)
         {
-            // A clean reinstall: throw away whatever MdPipe created and rebuild from scratch.
             TryDeleteDir(VenvRoot);
             TryDeleteDir(EmbedRoot);
         }
         else
         {
-            // Drop a broken environment (e.g. a base Python that lost its standard library) so it rebuilds.
             if (File.Exists(VenvPython) && !await IsHealthyAsync(VenvPython, cancellationToken)) TryDeleteDir(VenvRoot);
             if (File.Exists(EmbedPython) && !await IsHealthyAsync(EmbedPython, cancellationToken)) TryDeleteDir(EmbedRoot);
         }
 
         var target = await EnsureInterpreterAsync(cancellationToken);
 
-        // Install the [all] extra so every converter works (PDF, Word, Excel, PowerPoint, audio…).
-        // The base 'markitdown' package ships without the optional format dependencies.
+        // The base package omits format-specific dependencies.
         logger.LogInformation("Installing markitdown[all]=={Version} into {Exe}", markItDownVersion, target);
-        // Deliberately NOT --quiet: if pip can't reach PyPI (proxy, firewall, SSL interception…) we want its
-        // real explanation in stderr, not a bare "No matching distribution found".
+        // Keep pip output so proxy, firewall and SSL failures reach the user.
         await RunProcessAsync(target, $"-m pip install \"markitdown[all]=={markItDownVersion}\" --disable-pip-version-check", cancellationToken);
         logger.LogInformation("Setup complete");
     }
@@ -106,15 +91,10 @@ public sealed class PythonEnvironmentManager(
 
     internal string? GetPythonExecutable() => ReadyPython;
 
-    /// <summary>
-    /// Returns a ready-to-use interpreter, creating one if needed: a venv from a healthy system Python, or
-    /// — failing that — a private embedded Python downloaded into MdPipe's own folder.
-    /// </summary>
     private async Task<string> EnsureInterpreterAsync(CancellationToken cancellationToken)
     {
         if (ReadyPython is { } existing) return existing;
 
-        // Prefer a healthy system Python (fast, shared on disk).
         var systemPython = await FindSystemPythonAsync(cancellationToken);
         if (systemPython is not null)
         {
@@ -131,8 +111,7 @@ public sealed class PythonEnvironmentManager(
 
             if (File.Exists(VenvPython)) return VenvPython;
 
-            // The Store edition of Python virtualises file writes when spawned from a background process, so
-            // `-m venv` reports success yet the interpreter never lands on disk. Clean up and bring our own.
+            // Microsoft Store Python can report a successful venv creation without placing the interpreter on disk.
             logger.LogWarning("The system Python did not produce a usable venv; using an embedded Python instead.");
             TryDeleteDir(VenvRoot);
         }
@@ -145,10 +124,6 @@ public sealed class PythonEnvironmentManager(
         return EmbedPython;
     }
 
-    /// <summary>
-    /// Downloads the official Windows embeddable Python into <see cref="EmbedRoot"/>, enables site-packages,
-    /// and bootstraps pip — yielding a fully self-contained interpreter MdPipe controls end to end.
-    /// </summary>
     private async Task BootstrapEmbeddedPythonAsync(CancellationToken cancellationToken)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -164,7 +139,6 @@ public sealed class PythonEnvironmentManager(
         using var http = httpClientFactory.CreateClient();
         http.Timeout = TimeSpan.FromMinutes(5);
 
-        // 1. Download and unpack the embeddable interpreter.
         var zipPath = Path.Combine(EmbedRoot, "python-embed.zip");
         await DownloadFileAsync(http, zipUrl, zipPath, cancellationToken);
         ZipFile.ExtractToDirectory(zipPath, EmbedRoot, overwriteFiles: true);
@@ -173,10 +147,8 @@ public sealed class PythonEnvironmentManager(
         if (!File.Exists(EmbedPython))
             throw new PythonEnvironmentException("The downloaded embedded Python package did not contain python.exe.");
 
-        // 2. The embeddable ships with site-packages disabled; turn it on so pip-installed packages import.
         EnableEmbeddedSitePackages();
 
-        // 3. Bootstrap pip into the embedded interpreter.
         var getPip = Path.Combine(EmbedRoot, "get-pip.py");
         await DownloadFileAsync(http, "https://bootstrap.pypa.io/get-pip.py", getPip, cancellationToken);
         await RunProcessAsync(EmbedPython, $"\"{getPip}\" --no-warn-script-location", cancellationToken);
@@ -202,9 +174,7 @@ public sealed class PythonEnvironmentManager(
         }
     }
 
-    // The system proxy, detected once. Browsers and .NET use the Windows proxy automatically, but the
-    // bundled pip does NOT — so on a corporate network "you have internet" yet pip still can't reach PyPI.
-    // We forward the proxy to the Python child processes via the HTTP(S)_PROXY environment variables.
+    // pip does not inherit Windows proxy settings, so child processes receive the detected proxy explicitly.
     private static readonly (string? Http, string? Https) SystemProxy = DetectSystemProxy();
 
     private static (string?, string?) DetectSystemProxy()
@@ -225,7 +195,6 @@ public sealed class PythonEnvironmentManager(
         }
     }
 
-    /// <summary>Rewrites the embeddable's <c>python*._pth</c> so it loads site-packages and runs site init.</summary>
     private void EnableEmbeddedSitePackages()
     {
         var pth = Directory.GetFiles(EmbedRoot, "python*._pth").FirstOrDefault();
@@ -237,7 +206,6 @@ public sealed class PythonEnvironmentManager(
 
         var lines = File.ReadAllLines(pth).ToList();
 
-        // Un-comment the (commented-out) 'import site' directive.
         for (var i = 0; i < lines.Count; i++)
             if (lines[i].Trim().TrimStart('#').Trim() == "import site")
                 lines[i] = "import site";
@@ -274,11 +242,6 @@ public sealed class PythonEnvironmentManager(
         return null;
     }
 
-    /// <summary>
-    /// Resolves a healthy system Python via <c>sys.executable</c>. Querying it (rather than trusting the
-    /// command name) sidesteps Windows Store execution-alias stubs, and the standard-library check rejects a
-    /// relocated/partial install whose <c>Lib/</c> is gone (which would otherwise poison the venv).
-    /// </summary>
     private async Task<string?> FindSystemPythonAsync(CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -288,10 +251,7 @@ public sealed class PythonEnvironmentManager(
         {
             try
             {
-                // Only accept a Python MarkItDown can actually run on: recent enough (3.10+, its floor) and
-                // with a real on-disk standard library. An ancient, relocated or partial Python still prints
-                // sys.executable and exits 0, so we check both here rather than trusting it — otherwise the
-                // venv we build on top of it is doomed (e.g. Python 3.6 ships a pip too old to reach PyPI).
+                // Resolve sys.executable and reject aliases or installs without a usable standard library.
                 var output = await RunProcessAsync(
                     exe,
                     argPrefix + "-c \"import sys,os,sysconfig; print(sys.executable if (sys.version_info >= (3,10) and os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py'))) else '')\"",
@@ -306,18 +266,12 @@ public sealed class PythonEnvironmentManager(
 
                 logger.LogWarning("Ignoring '{Exe}': its Python is too old (need 3.10+) or has no usable standard library.", exe);
             }
-            catch { /* not available or stub failed — try the next candidate */ }
+            catch { }
         }
 
         return null;
     }
 
-    /// <summary>
-    /// True only if this interpreter is actually usable for MdPipe: recent enough for MarkItDown (3.10+) and
-    /// with a standard library it can reach — either on disk (Lib/os.py, for normal installs and venvs) or in
-    /// the zip next to python.exe (for the embeddable). This also flags an already-built environment as
-    /// unusable when its base Python is too old or was moved/uninstalled, so setup rebuilds it cleanly.
-    /// </summary>
     private async Task<bool> IsHealthyAsync(string pythonExe, CancellationToken cancellationToken)
     {
         try
@@ -341,7 +295,10 @@ public sealed class PythonEnvironmentManager(
             if (Directory.Exists(dir))
                 Directory.Delete(dir, recursive: true);
         }
-        catch (IOException) { /* best effort — a locked file shouldn't abort setup */ }
+        catch (IOException)
+        {
+            // A locked cleanup target should not abort setup.
+        }
         catch (UnauthorizedAccessException) { }
     }
 

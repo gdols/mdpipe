@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\MdPipe.Core\MdPipe.Core.csproj" />
@@ -10,7 +10,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Bake the repo manifest in as the offline fallback baseline (single source of truth). -->
     <EmbeddedResource Include="..\..\manifest\markitdown-compat.json"
                       LogicalName="MdPipe.Infrastructure.Resources.markitdown-compat.json" />
   </ItemGroup>

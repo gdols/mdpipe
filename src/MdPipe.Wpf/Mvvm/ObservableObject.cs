@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace MdPipe.Wpf.Mvvm;
 
-/// <summary>Minimal INotifyPropertyChanged base — no external MVVM dependency.</summary>
 public abstract class ObservableObject : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;

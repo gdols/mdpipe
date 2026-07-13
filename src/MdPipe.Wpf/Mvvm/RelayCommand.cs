@@ -2,7 +2,6 @@ using System.Windows.Input;
 
 namespace MdPipe.Wpf.Mvvm;
 
-/// <summary>Simple ICommand implementation for binding buttons to view-model methods.</summary>
 public sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
 {
     public event EventHandler? CanExecuteChanged

@@ -3,10 +3,6 @@ using MdPipe.Core.Models;
 
 namespace MdPipe.Core.Services;
 
-/// <summary>
-/// The heart of MdPipe's "version gate": only let through MarkItDown versions we've actually vetted in
-/// the manifest, so a surprise release upstream can't quietly break everyone's conversions overnight.
-/// </summary>
 public sealed class VersionGateService
 {
     public bool IsCompatible(string installedVersion, CompatibilityManifest manifest)
@@ -27,9 +23,5 @@ public sealed class VersionGateService
                 manifest.StableVersion);
     }
 
-    /// <summary>
-    /// The version we install when setting up or upgrading — always the manifest's stableVersion,
-    /// deliberately never "whatever happens to be newest on PyPI".
-    /// </summary>
     public string GetTargetVersion(CompatibilityManifest manifest) => manifest.StableVersion;
 }
