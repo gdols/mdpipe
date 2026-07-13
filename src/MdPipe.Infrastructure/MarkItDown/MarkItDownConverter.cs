@@ -55,7 +55,6 @@ public sealed class MarkItDownConverter(
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            // Keep accented and other non-ASCII content intact.
             StandardOutputEncoding = System.Text.Encoding.UTF8,
             StandardErrorEncoding = System.Text.Encoding.UTF8,
             Environment = { ["PYTHONIOENCODING"] = "utf-8" }
