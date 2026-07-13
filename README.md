@@ -10,6 +10,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/Windows%2010%2F11-64--bit-0078D4?logo=windows&logoColor=white" alt="Windows 10/11">
 </p>
+
 MdPipe is a small Windows app and CLI that converts PDF, Word, Excel, PowerPoint,
 HTML and image files to Markdown. It uses Microsoft's
 [MarkItDown](https://github.com/microsoft/markitdown) as its conversion engine and
@@ -46,6 +47,7 @@ proxy or firewall gets in the way.
 </p>
 
 You can also browse the [latest release](https://github.com/gdols/MdPipe/releases/latest) and its notes.
+
 It is a portable, self-contained Windows 10/11 x64 executable. The first launch
 downloads a private Python environment and MarkItDown into `%APPDATA%\mdpipe`;
 later conversions work offline. Because the executable is not code-signed yet,
