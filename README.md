@@ -4,6 +4,13 @@
 
 # MdPipe
 
+<p align="center">
+  <a href="https://github.com/gdols/MdPipe/releases/latest"><img src="https://img.shields.io/github/v/release/gdols/MdPipe?color=2563EB&label=latest" alt="Latest release"></a>
+  <a href="https://github.com/gdols/MdPipe/releases"><img src="https://img.shields.io/github/downloads/gdols/MdPipe/total?color=16A34A&label=downloads" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/Windows%2010%2F11-64--bit-0078D4?logo=windows&logoColor=white" alt="Windows 10/11">
+</p>
+
 MdPipe is a small Windows app and CLI that converts PDF, Word, Excel, PowerPoint,
 HTML and image files to Markdown. It uses Microsoft's
 [MarkItDown](https://github.com/microsoft/markitdown) as its conversion engine and
@@ -31,8 +38,15 @@ proxy or firewall gets in the way.
 
 ## Download
 
-Download [`MdPipe.exe`](https://github.com/gdols/MdPipe/releases/latest/download/MdPipe.exe)
-from the [latest release](https://github.com/gdols/MdPipe/releases/latest).
+<p align="center">
+  <a href="https://github.com/gdols/MdPipe/releases/latest/download/MdPipe.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20Download%20MdPipe.exe-free%20%C2%B7%20~63%20MB%20%C2%B7%20Windows-2563EB?style=for-the-badge&logo=windows&logoColor=white" alt="Download MdPipe.exe for Windows">
+  </a>
+  <br>
+  <sub><b>One file. No installer. No .NET or Python required.</b></sub>
+</p>
+
+You can also browse the [latest release](https://github.com/gdols/MdPipe/releases/latest) and its notes.
 
 It is a portable, self-contained Windows 10/11 x64 executable. The first launch
 downloads a private Python environment and MarkItDown into `%APPDATA%\mdpipe`;
