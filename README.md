@@ -35,7 +35,7 @@ Download [`MdPipe.exe`](https://github.com/gdols/MdPipe/releases/latest/download
 from the [latest release](https://github.com/gdols/MdPipe/releases/latest).
 
 It is a portable, self-contained Windows 10/11 x64 executable. The first launch
-downloads a private Python environment and MarkItDown into `%APPDATA%\\mdpipe`;
+downloads a private Python environment and MarkItDown into `%APPDATA%\mdpipe`;
 later conversions work offline. Because the executable is not code-signed yet,
 Windows SmartScreen may ask you to confirm that you want to run it.
 
