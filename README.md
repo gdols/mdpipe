@@ -48,14 +48,13 @@ them to install Python or work from a terminal.
 
 ## CLI
 
-Install the .NET global tool:
+The repository also includes a CLI for scripts and local use. Run it from source
+with the .NET 10 SDK:
 
 ```bash
-dotnet tool install --global MdPipe
-
-mdpipe convert report.pdf
-mdpipe convert report.pdf -o report.md
-mdpipe status
+dotnet run --project src/MdPipe.Cli -- convert report.pdf
+dotnet run --project src/MdPipe.Cli -- convert report.pdf -o report.md
+dotnet run --project src/MdPipe.Cli -- status
 ```
 
 ## How it works
