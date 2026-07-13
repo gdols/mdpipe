@@ -42,7 +42,6 @@ public class CachedManifestProviderTests : IDisposable
     {
         _inner.GetManifestAsync(Arg.Any<CancellationToken>()).Returns(SampleManifest());
 
-        // First call populates the cache, second should read it.
         await CreateSut().GetManifestAsync();
         var result = await CreateSut().GetManifestAsync();
 

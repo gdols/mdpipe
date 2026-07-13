@@ -76,7 +76,6 @@ public sealed class PythonEnvironmentManager(
 
         var target = await EnsureInterpreterAsync(cancellationToken);
 
-        // The base package omits format-specific dependencies.
         logger.LogInformation("Installing markitdown[all]=={Version} into {Exe}", markItDownVersion, target);
         // Keep pip output so proxy, firewall and SSL failures reach the user.
         await RunProcessAsync(target, $"-m pip install \"markitdown[all]=={markItDownVersion}\" --disable-pip-version-check", cancellationToken);
@@ -251,7 +250,6 @@ public sealed class PythonEnvironmentManager(
         {
             try
             {
-                // Resolve sys.executable and reject aliases or installs without a usable standard library.
                 var output = await RunProcessAsync(
                     exe,
                     argPrefix + "-c \"import sys,os,sysconfig; print(sys.executable if (sys.version_info >= (3,10) and os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py'))) else '')\"",
