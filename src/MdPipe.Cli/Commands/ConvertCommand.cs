@@ -28,7 +28,6 @@ public static class ConvertCommand
             var input = parseResult.GetValue(inputArg)!;
             var output = parseResult.GetValue(outputOpt);
 
-            // Version gate check before conversion
             try
             {
                 var manifest = await manifestProvider.GetManifestAsync(cancellationToken);

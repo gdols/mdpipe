@@ -62,7 +62,7 @@ FallbackManifestProvider
 
 This means MdPipe works **out of the box on first run even without the remote manifest**.
 The remote manifest's only job is to *advance* the validated set over time; it is never
-required just to get started. The embedded file and the repo file are the same source — the
+required just to get started. The embedded file and the repo file are the same source. The
 csproj embeds the repository manifest at build time, so there is a single source of truth.
 
 ### 4. Updating the manifest
@@ -70,7 +70,7 @@ csproj embeds the repository manifest at build time, so there is a single source
 Only the repository owner (you) can advance the validated set. The workflow is:
 
 1. Install and test a new MarkItDown version manually.
-2. Update `manifest/markitdown-compat.json` — add the version to `compatibleVersions`
+2. Update `manifest/markitdown-compat.json`: add the version to `compatibleVersions`
    and optionally advance `stableVersion`.
 3. Commit and push. Users get the update automatically within 24 hours.
 
@@ -81,3 +81,4 @@ This means users will **never** get an untested MarkItDown update via `pip insta
 A `requirements.txt` pins for **your** environment. The manifest pins for **all users**,
 with an explicit validation record, version history in git, and a human-readable audit trail.
 It also lets you allow a range of compatible versions rather than a single exact pin.
+

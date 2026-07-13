@@ -5,11 +5,6 @@ using Microsoft.Extensions.Logging;
 
 namespace MdPipe.Infrastructure.Manifest;
 
-/// <summary>
-/// Tries the primary provider (remote + cache) and, if it fails, falls back to a
-/// secondary provider (the embedded baseline). This keeps MdPipe usable offline or
-/// before the remote manifest is published, while still preferring the remote one.
-/// </summary>
 public sealed class FallbackManifestProvider(
     IManifestProvider primary,
     IManifestProvider fallback,

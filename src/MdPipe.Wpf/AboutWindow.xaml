@@ -12,7 +12,6 @@
     <Border Margin="26" Background="{StaticResource Surface}" CornerRadius="14"
             BorderBrush="{StaticResource Border}" BorderThickness="1" Padding="28">
         <StackPanel>
-            <!-- App identity -->
             <StackPanel Orientation="Horizontal">
                 <Image Source="/Assets/icon.png" Width="60" Height="60" Margin="0,0,16,0"
                        VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -31,13 +30,11 @@
 
             <Border Height="1" Background="{StaticResource Border}" Margin="0,20,0,18" />
 
-            <!-- Author -->
             <TextBlock Text="DEVELOPED BY" FontSize="11" FontWeight="SemiBold"
                        Foreground="{StaticResource TextMuted}" />
             <TextBlock Text="Guillermo Dols" FontSize="17" FontWeight="SemiBold"
                        Foreground="{StaticResource TextPrimary}" Margin="0,4,0,14" />
 
-            <!-- Contact / links -->
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="92" />
@@ -76,7 +73,6 @@
 
             <Border Height="1" Background="{StaticResource Border}" Margin="0,20,0,16" />
 
-            <!-- Disclaimer -->
             <TextBlock FontSize="11.5" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
                        Text="MdPipe is an independent, unofficial project. It is not affiliated with or sponsored by Microsoft. It uses Microsoft MarkItDown (MIT license), which is downloaded from PyPI at runtime." />
 

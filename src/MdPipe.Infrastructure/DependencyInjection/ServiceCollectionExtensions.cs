@@ -25,9 +25,6 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 
-        // Where the manifest comes from: try the remote copy first (cached on disk for a day so we're
-        // not hitting GitHub every run) and, if that's unreachable, fall back to the copy baked into the
-        // build. That baked-in copy is what lets MdPipe work offline and before the repo even exists.
         services.AddSingleton<EmbeddedManifestProvider>();
         services.AddSingleton<IManifestProvider>(sp =>
         {

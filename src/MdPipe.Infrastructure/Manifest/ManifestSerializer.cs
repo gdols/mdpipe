@@ -5,7 +5,6 @@ using MdPipe.Core.Models;
 
 namespace MdPipe.Infrastructure.Manifest;
 
-/// <summary>Shared JSON (de)serialization for the compatibility manifest.</summary>
 internal static class ManifestSerializer
 {
     private static readonly JsonSerializerOptions Options = new()

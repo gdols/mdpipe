@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\MdPipe.Core\MdPipe.Core.csproj" />
@@ -17,7 +17,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <!-- Packaged as a .NET global tool: `dotnet tool install -g MdPipe` then `mdpipe ...` -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>mdpipe</ToolCommandName>
     <PackageId>MdPipe</PackageId>

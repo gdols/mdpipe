@@ -5,10 +5,6 @@ using Microsoft.Extensions.Logging;
 
 namespace MdPipe.Infrastructure.Manifest;
 
-/// <summary>
-/// Decorator that caches the manifest to disk for <see cref="CacheTtl"/> so the app
-/// works offline and doesn't hit GitHub on every run.
-/// </summary>
 public sealed class CachedManifestProvider : IManifestProvider
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
@@ -39,7 +35,7 @@ public sealed class CachedManifestProvider : IManifestProvider
             return cached!;
         }
 
-        _logger.LogDebug("Cache miss or expired — fetching manifest from remote");
+        _logger.LogDebug("Cache miss or expired. Fetching manifest from remote");
         var manifest = await _inner.GetManifestAsync(cancellationToken);
         WriteCache(manifest);
         return manifest;

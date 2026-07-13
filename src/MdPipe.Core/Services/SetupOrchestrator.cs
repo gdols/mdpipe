@@ -3,11 +3,6 @@ using Microsoft.Extensions.Logging;
 
 namespace MdPipe.Core.Services;
 
-/// <summary>
-/// The single place that decides what happens on startup: read the manifest, see whether the
-/// MarkItDown we have installed is still allowed, and only install or upgrade if we actually need to.
-/// The CLI and the desktop app both go through here, so the behaviour stays identical.
-/// </summary>
 public sealed class SetupOrchestrator(
     IManifestProvider manifestProvider,
     IPythonEnvironmentManager environmentManager,

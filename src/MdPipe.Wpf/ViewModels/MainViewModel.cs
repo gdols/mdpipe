@@ -95,17 +95,12 @@ public sealed class MainViewModel : ObservableObject
 
     public bool CanConvert => IsReady && !IsBusy && Files.Count > 0;
 
-    /// <summary>Offer the "Reinstall" action when the environment isn't ready (missing/broken) and we're idle.</summary>
     public bool ShowReinstall => !IsReady && !IsBusy;
 
     private bool HasConvertedFiles => Files.Any(f => f.IsDone);
 
-    /// <summary>
-    /// Runs once at startup: prepares or auto-updates MarkItDown to the validated version.
-    /// </summary>
     public Task InitializeAsync() => PrepareEnvironmentAsync(forceReinstall: false);
 
-    /// <summary>Clean reinstall of MdPipe's private Python + MarkItDown (triggered by the "Reinstall" button).</summary>
     private async Task ReinstallAsync()
     {
         StatusMessage = "Reinstalling the environment…";
@@ -136,8 +131,6 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (PythonEnvironmentException ex)
         {
-            // Setup ran but couldn't finish (usually the first-time download). If a working MarkItDown is
-            // already installed, just carry on; otherwise show what actually went wrong.
             var envInfo = await _environmentManager.GetEnvironmentInfoAsync();
             if (envInfo.IsReady && envInfo.InstalledMarkItDownVersion is not null)
             {
@@ -223,7 +216,6 @@ public sealed class MainViewModel : ObservableObject
                 }
                 catch (Exception ex)
                 {
-                    // A single bad file must never abort the batch or crash the app.
                     file.ErrorMessage = ex.Message;
                     file.Status = FileStatus.Error;
                 }

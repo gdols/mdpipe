@@ -28,7 +28,7 @@ var manifestProvider = host.Services.GetRequiredService<IManifestProvider>();
 var versionGate = host.Services.GetRequiredService<VersionGateService>();
 var orchestrator = host.Services.GetRequiredService<SetupOrchestrator>();
 
-var root = new RootCommand("MdPipe — convert documents to Markdown using Microsoft MarkItDown")
+var root = new RootCommand("MdPipe: convert documents to Markdown using Microsoft MarkItDown")
 {
     ConvertCommand.Build(converter, environmentManager, manifestProvider, versionGate),
     SetupCommand.Build(orchestrator),

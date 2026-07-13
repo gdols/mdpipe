@@ -42,7 +42,7 @@ public static class StatusCommand
                 if (envInfo.InstalledMarkItDownVersion is not null)
                 {
                     var compatible = versionGate.IsCompatible(envInfo.InstalledMarkItDownVersion, manifest);
-                    Console.WriteLine($"  Version gate      : {(compatible ? "PASS" : "FAIL — run 'mdpipe setup'")}");
+                    Console.WriteLine($"  Version gate      : {(compatible ? "PASS" : "FAIL: run 'mdpipe setup'")}");
                 }
             }
             catch (ManifestException ex)

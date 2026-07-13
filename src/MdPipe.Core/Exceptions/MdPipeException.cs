@@ -12,7 +12,6 @@ public class ManifestException(string message, Exception? inner = null)
 public class PythonEnvironmentException(string message, Exception? inner = null)
     : MdPipeException(message, inner);
 
-/// <summary>No usable Python interpreter was found on the system.</summary>
 public class PythonNotFoundException(string message, Exception? inner = null)
     : PythonEnvironmentException(message, inner);
 

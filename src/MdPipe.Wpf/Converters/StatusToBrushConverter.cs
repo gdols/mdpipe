@@ -5,7 +5,6 @@ using MdPipe.Wpf.ViewModels;
 
 namespace MdPipe.Wpf.Converters;
 
-/// <summary>Maps a <see cref="FileStatus"/> to a status colour for the file list.</summary>
 public sealed class StatusToBrushConverter : IValueConverter
 {
     private static readonly SolidColorBrush Muted = new((Color)ColorConverter.ConvertFromString("#64748B"));

@@ -55,7 +55,7 @@ public sealed class MarkItDownConverter(
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            // Force UTF-8 so accented/non-ASCII content survives (Spanish, etc.).
+            // Keep accented and other non-ASCII content intact.
             StandardOutputEncoding = System.Text.Encoding.UTF8,
             StandardErrorEncoding = System.Text.Encoding.UTF8,
             Environment = { ["PYTHONIOENCODING"] = "utf-8" }
@@ -78,10 +78,6 @@ public sealed class MarkItDownConverter(
         return await stdoutTask;
     }
 
-    /// <summary>
-    /// Nobody wants to see a raw Python traceback, so we boil it down to one line. Python puts the actual
-    /// exception on the last line ("module.SomeError: message"), so that's what we reach for.
-    /// </summary>
     private static string SummarizeError(string stderr, int exitCode)
     {
         var lines = stderr
@@ -93,7 +89,6 @@ public sealed class MarkItDownConverter(
         if (lines.Count == 0)
             return $"MarkItDown could not convert the file (exit code {exitCode}).";
 
-        // Python prints the exception on the last line, e.g. "module.SomeException: message".
         var last = lines[^1];
         var colon = last.IndexOf(": ", StringComparison.Ordinal);
         var message = colon >= 0 ? last[(colon + 2)..] : last;
