@@ -17,7 +17,7 @@ public sealed class MainViewModel : ObservableObject
 
     private bool _isBusy;
     private bool _isReady;
-    private string _statusMessage = "Starting…";
+    private string _statusMessage = "Startingâ€¦";
     private string? _outputFolder;
 
     public MainViewModel(
@@ -108,7 +108,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Clean reinstall of MdPipe's private Python + MarkItDown (triggered by the "Reinstall" button).</summary>
     private async Task ReinstallAsync()
     {
-        StatusMessage = "Reinstalling the environment…";
+        StatusMessage = "Reinstalling the environmentâ€¦";
         await PrepareEnvironmentAsync(forceReinstall: true);
     }
 
@@ -121,14 +121,14 @@ public sealed class MainViewModel : ObservableObject
             var result = await Task.Run(() => _setupOrchestrator.RunAsync(forceReinstall, progress));
 
             IsReady = true;
-            StatusMessage = $"Ready · MarkItDown {result.Version}";
+            StatusMessage = $"Ready Â· MarkItDown {result.Version}";
         }
         catch (PythonNotFoundException)
         {
             IsReady = false;
-            StatusMessage = "Python is missing. Install Python 3.9 or later and reopen the app.";
+            StatusMessage = "Python is missing. Install Python 3.10 or later and reopen the app.";
             MessageBox.Show(
-                "MdPipe needs Python 3.9 or later installed on the system.\n\n" +
+                "MdPipe needs Python 3.10 or later installed on the system.\n\n" +
                 "Download it for free from python.org, install it, and reopen MdPipe.",
                 "Python missing",
                 MessageBoxButton.OK,
@@ -142,7 +142,7 @@ public sealed class MainViewModel : ObservableObject
             if (envInfo.IsReady && envInfo.InstalledMarkItDownVersion is not null)
             {
                 IsReady = true;
-                StatusMessage = $"Ready · MarkItDown {envInfo.InstalledMarkItDownVersion}";
+                StatusMessage = $"Ready Â· MarkItDown {envInfo.InstalledMarkItDownVersion}";
             }
             else
             {
@@ -192,7 +192,7 @@ public sealed class MainViewModel : ObservableObject
     private async Task ConvertAllAsync()
     {
         IsBusy = true;
-        StatusMessage = "Converting files…";
+        StatusMessage = "Converting filesâ€¦";
         try
         {
             var pending = Files.Where(f => f.Status is FileStatus.Pending or FileStatus.Error).ToList();
@@ -230,8 +230,8 @@ public sealed class MainViewModel : ObservableObject
             }
 
             StatusMessage = converted == pending.Count
-                ? $"Done · {converted} file(s) converted"
-                : $"Finished with warnings · {converted}/{pending.Count} converted";
+                ? $"Done Â· {converted} file(s) converted"
+                : $"Finished with warnings Â· {converted}/{pending.Count} converted";
         }
         finally
         {
@@ -278,3 +278,4 @@ public sealed class MainViewModel : ObservableObject
     private static void CommandManagerRefresh() =>
         Application.Current?.Dispatcher.Invoke(System.Windows.Input.CommandManager.InvalidateRequerySuggested);
 }
+
