@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using MdPipe.Core.Exceptions;
 using MdPipe.Core.Models;
 
@@ -9,8 +8,7 @@ internal static class ManifestSerializer
 {
     private static readonly JsonSerializerOptions Options = new()
     {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new DateOnlyJsonConverter() }
+        PropertyNameCaseInsensitive = true
     };
 
     public static CompatibilityManifest Deserialize(string json)
@@ -38,14 +36,5 @@ internal static class ManifestSerializer
             UpdatedAt = DateOnly.TryParse(UpdatedAt, out var d) ? d : DateOnly.MinValue,
             Notes = Notes
         };
-    }
-
-    private sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
-    {
-        public override DateOnly Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-            DateOnly.Parse(reader.GetString()!);
-
-        public override void Write(Utf8JsonWriter writer, DateOnly value, JsonSerializerOptions options) =>
-            writer.WriteStringValue(value.ToString("yyyy-MM-dd"));
     }
 }
