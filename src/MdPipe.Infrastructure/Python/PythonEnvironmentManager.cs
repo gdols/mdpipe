@@ -61,7 +61,7 @@ public sealed class PythonEnvironmentManager(
         };
     }
 
-    public async Task SetupAsync(string markItDownVersion, bool forceReinstall = false, CancellationToken cancellationToken = default)
+    public async Task SetupAsync(string markItDownVersion, bool forceReinstall = false, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
     {
         if (forceReinstall)
         {
@@ -74,9 +74,10 @@ public sealed class PythonEnvironmentManager(
             if (File.Exists(EmbedPython) && !await IsHealthyAsync(EmbedPython, cancellationToken)) TryDeleteDir(EmbedRoot);
         }
 
-        var target = await EnsureInterpreterAsync(cancellationToken);
+        var target = await EnsureInterpreterAsync(progress, cancellationToken);
 
         logger.LogInformation("Installing markitdown[all]=={Version} into {Exe}", markItDownVersion, target);
+        progress?.Report($"Downloading MarkItDown {markItDownVersion} and its converters (the biggest part)...");
         // Keep pip output so proxy, firewall and SSL failures reach the user.
         await RunProcessAsync(target, $"-m pip install \"markitdown[all]=={markItDownVersion}\" --disable-pip-version-check", cancellationToken);
         logger.LogInformation("Setup complete");
@@ -90,10 +91,11 @@ public sealed class PythonEnvironmentManager(
 
     internal string? GetPythonExecutable() => ReadyPython;
 
-    private async Task<string> EnsureInterpreterAsync(CancellationToken cancellationToken)
+    private async Task<string> EnsureInterpreterAsync(IProgress<string>? progress, CancellationToken cancellationToken)
     {
         if (ReadyPython is { } existing) return existing;
 
+        progress?.Report("Preparing the Python environment...");
         var systemPython = await FindSystemPythonAsync(cancellationToken);
         if (systemPython is not null)
         {
@@ -115,7 +117,7 @@ public sealed class PythonEnvironmentManager(
             TryDeleteDir(VenvRoot);
         }
 
-        await BootstrapEmbeddedPythonAsync(cancellationToken);
+        await BootstrapEmbeddedPythonAsync(progress, cancellationToken);
 
         if (!File.Exists(EmbedPython))
             throw new PythonEnvironmentException("Failed to set up the embedded Python environment.");
@@ -123,10 +125,10 @@ public sealed class PythonEnvironmentManager(
         return EmbedPython;
     }
 
-    private async Task BootstrapEmbeddedPythonAsync(CancellationToken cancellationToken)
+    private async Task BootstrapEmbeddedPythonAsync(IProgress<string>? progress, CancellationToken cancellationToken)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            throw new PythonNotFoundException("No usable Python was found. Please install Python 3.9 or later.");
+            throw new PythonNotFoundException("No usable Python was found. Please install Python 3.10 or later.");
 
         logger.LogInformation("Setting up a private embedded Python at {Root}", EmbedRoot);
         TryDeleteDir(EmbedRoot);
@@ -139,7 +141,7 @@ public sealed class PythonEnvironmentManager(
         http.Timeout = TimeSpan.FromMinutes(5);
 
         var zipPath = Path.Combine(EmbedRoot, "python-embed.zip");
-        await DownloadFileAsync(http, zipUrl, zipPath, cancellationToken);
+        await DownloadFileAsync(http, zipUrl, zipPath, $"Downloading Python {EmbeddedPythonVersion}", progress, cancellationToken);
         ZipFile.ExtractToDirectory(zipPath, EmbedRoot, overwriteFiles: true);
         File.Delete(zipPath);
 
@@ -148,24 +150,52 @@ public sealed class PythonEnvironmentManager(
 
         EnableEmbeddedSitePackages();
 
+        progress?.Report("Setting up pip...");
         var getPip = Path.Combine(EmbedRoot, "get-pip.py");
-        await DownloadFileAsync(http, "https://bootstrap.pypa.io/get-pip.py", getPip, cancellationToken);
+        await DownloadFileAsync(http, "https://bootstrap.pypa.io/get-pip.py", getPip, "Downloading pip", progress, cancellationToken);
         await RunProcessAsync(EmbedPython, $"\"{getPip}\" --no-warn-script-location", cancellationToken);
         File.Delete(getPip);
 
         logger.LogInformation("Embedded Python ready at {Exe}", EmbedPython);
     }
 
-    private static async Task DownloadFileAsync(HttpClient http, string url, string destPath, CancellationToken cancellationToken)
+    private static async Task DownloadFileAsync(
+        HttpClient http, string url, string destPath, string label, IProgress<string>? progress, CancellationToken cancellationToken)
     {
         try
         {
             using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
+
+            var totalBytes = response.Content.Headers.ContentLength;
+            var sizeText = totalBytes is > 0 ? $" ({totalBytes.Value / (1024 * 1024)} MB)" : "";
+            progress?.Report($"{label}{sizeText}...");
+
+            await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
             await using var fileStream = File.Create(destPath);
-            await response.Content.CopyToAsync(fileStream, cancellationToken);
+
+            var buffer = new byte[81920];
+            long received = 0;
+            var lastReported = -1;
+            int read;
+            while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+            {
+                await fileStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                received += read;
+                if (totalBytes is > 0)
+                {
+                    var pct = (int)(received * 100 / totalBytes.Value);
+                    if (pct >= lastReported + 5)
+                    {
+                        lastReported = pct;
+                        progress?.Report($"{label}... {pct}%");
+                    }
+                }
+            }
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        catch (Exception ex) when (
+            ex is HttpRequestException or IOException ||
+            (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             throw new PythonEnvironmentException(
                 $"Couldn't download from {new Uri(url).Host}. A proxy, firewall, VPN or antivirus may be blocking it. " +
@@ -286,18 +316,24 @@ public sealed class PythonEnvironmentManager(
         }
     }
 
-    private static void TryDeleteDir(string dir)
+    private void TryDeleteDir(string dir)
     {
         try
         {
-            if (Directory.Exists(dir))
-                Directory.Delete(dir, recursive: true);
+            if (!Directory.Exists(dir)) return;
+
+            // The embeddable zip extracts some files as read-only, and Directory.Delete refuses to
+            // remove those. Clear the attribute first so a rebuild actually starts from scratch.
+            foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
+
+            Directory.Delete(dir, recursive: true);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // A locked cleanup target should not abort setup.
+            // A locked cleanup target should not abort setup, but it must not be invisible either.
+            logger.LogWarning(ex, "Couldn't fully delete {Dir}; continuing with what's there.", dir);
         }
-        catch (UnauthorizedAccessException) { }
     }
 
     private static async Task<string> RunProcessAsync(
@@ -310,6 +346,12 @@ public sealed class PythonEnvironmentManager(
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        // pip doesn't pick up the Windows proxy on its own; hand it over explicitly.
+        if (SystemProxy.Http is { } httpProxy && !psi.Environment.ContainsKey("HTTP_PROXY"))
+            psi.Environment["HTTP_PROXY"] = httpProxy;
+        if (SystemProxy.Https is { } httpsProxy && !psi.Environment.ContainsKey("HTTPS_PROXY"))
+            psi.Environment["HTTPS_PROXY"] = httpsProxy;
 
         using var process = Process.Start(psi)
             ?? throw new PythonEnvironmentException($"Failed to start process: {executable}");

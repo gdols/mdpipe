@@ -17,8 +17,17 @@ public sealed class MainViewModel : ObservableObject
 
     private bool _isBusy;
     private bool _isReady;
+    private bool _isConverting;
     private string _statusMessage = "Starting…";
     private string? _outputFolder;
+    private CancellationTokenSource? _convertCts;
+    private readonly UserSettings _settings;
+
+    private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls",
+        ".html", ".htm", ".csv", ".json", ".xml", ".txt", ".png", ".jpg", ".jpeg"
+    };
 
     public MainViewModel(
         SetupOrchestrator setupOrchestrator,
@@ -36,6 +45,11 @@ public sealed class MainViewModel : ObservableObject
         OpenOutputFolderCommand = new RelayCommand(OpenOutputFolder, () => HasConvertedFiles);
         ChooseOutputFolderCommand = new RelayCommand(ChooseOutputFolder, () => !IsBusy);
         ReinstallCommand = new RelayCommand(async () => await ReinstallAsync(), () => !IsBusy);
+        CancelCommand = new RelayCommand(() => _convertCts?.Cancel(), () => IsConverting);
+
+        _settings = UserSettings.Load();
+        if (!string.IsNullOrEmpty(_settings.OutputFolder) && Directory.Exists(_settings.OutputFolder))
+            _outputFolder = _settings.OutputFolder;
     }
 
     public ObservableCollection<FileItemViewModel> Files { get; } = [];
@@ -45,6 +59,17 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand OpenOutputFolderCommand { get; }
     public RelayCommand ChooseOutputFolderCommand { get; }
     public RelayCommand ReinstallCommand { get; }
+    public RelayCommand CancelCommand { get; }
+
+    public bool IsConverting
+    {
+        get => _isConverting;
+        private set
+        {
+            if (SetProperty(ref _isConverting, value))
+                CommandManagerRefresh();
+        }
+    }
 
     public bool IsBusy
     {
@@ -85,7 +110,11 @@ public sealed class MainViewModel : ObservableObject
         set
         {
             if (SetProperty(ref _outputFolder, value))
+            {
                 OnPropertyChanged(nameof(OutputFolderDisplay));
+                _settings.OutputFolder = value;
+                _settings.Save();
+            }
         }
     }
 
@@ -175,19 +204,61 @@ public sealed class MainViewModel : ObservableObject
         if (IsBusy) return;
 
         var existing = Files.Select(f => f.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in paths.Where(File.Exists))
+        foreach (var path in paths)
         {
-            if (existing.Add(path))
-                Files.Add(new FileItemViewModel(path));
+            if (File.Exists(path))
+            {
+                if (existing.Add(path))
+                    Files.Add(new FileItemViewModel(path));
+            }
+            else if (Directory.Exists(path))
+            {
+                foreach (var file in FindSupportedFiles(path))
+                    if (existing.Add(file))
+                        Files.Add(new FileItemViewModel(file));
+            }
         }
+    }
+
+    /// <summary>
+    /// Walks a dropped folder (subfolders included) collecting the file types we can convert,
+    /// skipping anything we're not allowed to read rather than giving up on the whole folder.
+    /// </summary>
+    private static List<string> FindSupportedFiles(string root)
+    {
+        var results = new List<string>();
+        var pending = new Stack<string>();
+        pending.Push(root);
+
+        while (pending.Count > 0)
+        {
+            var dir = pending.Pop();
+            try
+            {
+                foreach (var sub in Directory.GetDirectories(dir))
+                    pending.Push(sub);
+                foreach (var file in Directory.GetFiles(dir))
+                    if (SupportedExtensions.Contains(Path.GetExtension(file)))
+                        results.Add(file);
+            }
+            catch (UnauthorizedAccessException) { }
+            catch (IOException) { }
+        }
+
+        return results;
     }
 
     private async Task ConvertAllAsync()
     {
         IsBusy = true;
+        IsConverting = true;
         StatusMessage = "Converting files…";
+        _convertCts = new CancellationTokenSource();
+        var cancelled = false;
+
         try
         {
+            var token = _convertCts.Token;
             var pending = Files.Where(f => f.Status is FileStatus.Pending or FileStatus.Error).ToList();
             var converted = 0;
 
@@ -200,7 +271,7 @@ public sealed class MainViewModel : ObservableObject
                 {
                     var outputPath = BuildOutputPath(file.SourcePath);
                     var request = ConversionRequest.FromFile(file.SourcePath, outputPath);
-                    var result = await Task.Run(() => _converter.ConvertAsync(request));
+                    var result = await Task.Run(() => _converter.ConvertAsync(request, token), token);
 
                     if (result.Success)
                     {
@@ -214,6 +285,12 @@ public sealed class MainViewModel : ObservableObject
                         file.Status = FileStatus.Error;
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    file.Status = FileStatus.Pending;
+                    cancelled = true;
+                    break;
+                }
                 catch (Exception ex)
                 {
                     file.ErrorMessage = ex.Message;
@@ -221,12 +298,17 @@ public sealed class MainViewModel : ObservableObject
                 }
             }
 
-            StatusMessage = converted == pending.Count
-                ? $"Done · {converted} file(s) converted"
-                : $"Finished with warnings · {converted}/{pending.Count} converted";
+            StatusMessage = cancelled
+                ? $"Cancelled · {converted} file(s) converted so far"
+                : converted == pending.Count
+                    ? $"Done · {converted} file(s) converted"
+                    : $"Finished with warnings · {converted}/{pending.Count} converted";
         }
         finally
         {
+            _convertCts.Dispose();
+            _convertCts = null;
+            IsConverting = false;
             IsBusy = false;
         }
     }

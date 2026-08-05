@@ -23,28 +23,37 @@ public sealed class SetupOrchestrator(
 
         if (!forceReinstall && envInfo.IsReady && envInfo.InstalledMarkItDownVersion is not null)
         {
-            if (versionGate.IsCompatible(envInfo.InstalledMarkItDownVersion, manifest))
+            if (versionGate.IsCompatible(envInfo.InstalledMarkItDownVersion, manifest)
+                && !IsNewer(manifest.StableVersion, envInfo.InstalledMarkItDownVersion))
             {
                 logger.LogInformation("MarkItDown {Version} is already installed and compatible. Nothing to do.", envInfo.InstalledMarkItDownVersion);
                 Report(progress, $"MarkItDown {envInfo.InstalledMarkItDownVersion} is ready.");
                 return SetupResult.AlreadyUpToDate(envInfo.InstalledMarkItDownVersion);
             }
 
-            logger.LogWarning(
-                "Installed version {Installed} is not in the validated set. Upgrading to {Target}.",
-                envInfo.InstalledMarkItDownVersion, manifest.StableVersion);
+            if (versionGate.IsCompatible(envInfo.InstalledMarkItDownVersion, manifest))
+                logger.LogInformation(
+                    "A newer validated MarkItDown is available ({Installed} -> {Target}). Upgrading.",
+                    envInfo.InstalledMarkItDownVersion, manifest.StableVersion);
+            else
+                logger.LogWarning(
+                    "Installed version {Installed} is not in the validated set. Upgrading to {Target}.",
+                    envInfo.InstalledMarkItDownVersion, manifest.StableVersion);
             Report(progress, $"Updating MarkItDown to {manifest.StableVersion}...");
         }
 
         var targetVersion = versionGate.GetTargetVersion(manifest);
         Report(progress, $"Installing MarkItDown {targetVersion} (this may take a minute the first time)...");
-        await environmentManager.SetupAsync(targetVersion, forceReinstall, cancellationToken);
+        await environmentManager.SetupAsync(targetVersion, forceReinstall, progress, cancellationToken);
         Report(progress, $"MarkItDown {targetVersion} installed.");
 
         return SetupResult.Installed(targetVersion);
     }
 
     private static void Report(IProgress<string>? progress, string message) => progress?.Report(message);
+
+    private static bool IsNewer(string candidate, string installed) =>
+        Version.TryParse(candidate, out var c) && Version.TryParse(installed, out var i) && c > i;
 }
 
 public sealed class SetupResult

@@ -40,11 +40,16 @@ them to install Python or work from a terminal.
 
 ## What it does
 
-- Converts several files in one batch using drag and drop.
-- Saves the Markdown beside the original or in a chosen folder.
+- Converts several files in one batch using drag and drop. Folders work too,
+  subfolders included.
+- Saves the Markdown beside the original or in a chosen folder, and remembers
+  your choice for next time.
+- Shows real download progress during the first-run setup, and conversions can
+  be cancelled midway.
 - Runs locally without uploading documents or collecting telemetry.
 - Includes a CLI for scripts and automation.
-- Keeps MarkItDown on a version tested with MdPipe.
+- Keeps MarkItDown on a version tested with MdPipe, and picks up newly
+  validated versions on launch.
 
 ## CLI
 
