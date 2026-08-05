@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "stableVersion": "0.1.6",
-  "minimumVersion": "0.1.4",
+  "stableVersion": "0.1.7",
+  "minimumVersion": "0.1.5",
   "compatibleVersions": [
-    "0.1.4",
     "0.1.5",
-    "0.1.6"
+    "0.1.6",
+    "0.1.7"
   ],
-  "updatedAt": "2026-06-30",
-  "notes": "Validated against MdPipe 1.0.0. Bundled as the offline fallback baseline."
+  "updatedAt": "2026-08-05",
+  "notes": "0.1.7 validated on real PDF, DOCX and XLSX files: output identical to 0.1.6, plus upstream fixes for PPTX charts, PPTX SVG images and Word equations."
 }
