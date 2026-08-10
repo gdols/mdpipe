@@ -23,8 +23,14 @@ public sealed class SetupOrchestrator(
 
         if (!forceReinstall && envInfo.IsReady && envInfo.InstalledMarkItDownVersion is not null)
         {
+            var comparison = versionGate.Compare(manifest.StableVersion, envInfo.InstalledMarkItDownVersion);
+            if (comparison is null)
+                logger.LogWarning(
+                    "Couldn't compare installed MarkItDown {Installed} with stable {Stable}; keeping the installed one.",
+                    envInfo.InstalledMarkItDownVersion, manifest.StableVersion);
+
             if (versionGate.IsCompatible(envInfo.InstalledMarkItDownVersion, manifest)
-                && !IsNewer(manifest.StableVersion, envInfo.InstalledMarkItDownVersion))
+                && comparison is not > 0)
             {
                 logger.LogInformation("MarkItDown {Version} is already installed and compatible. Nothing to do.", envInfo.InstalledMarkItDownVersion);
                 Report(progress, $"MarkItDown {envInfo.InstalledMarkItDownVersion} is ready.");
@@ -51,9 +57,6 @@ public sealed class SetupOrchestrator(
     }
 
     private static void Report(IProgress<string>? progress, string message) => progress?.Report(message);
-
-    private static bool IsNewer(string candidate, string installed) =>
-        Version.TryParse(candidate, out var c) && Version.TryParse(installed, out var i) && c > i;
 }
 
 public sealed class SetupResult
