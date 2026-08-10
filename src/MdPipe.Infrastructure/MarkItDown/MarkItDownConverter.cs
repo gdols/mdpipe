@@ -80,13 +80,14 @@ public sealed class MarkItDownConverter(
         if (process.ExitCode != 0)
         {
             var error = await stderrTask;
+            await stdoutTask; // Ensure we read stdout to avoid deadlocks.
             throw new ConversionException(SummarizeError(error, process.ExitCode));
         }
 
         return await stdoutTask;
     }
 
-    private static string SummarizeError(string stderr, int exitCode)
+    internal static string SummarizeError(string stderr, int exitCode)
     {
         var lines = stderr
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
