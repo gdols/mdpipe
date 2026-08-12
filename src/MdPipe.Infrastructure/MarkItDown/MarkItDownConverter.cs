@@ -42,7 +42,9 @@ public sealed class MarkItDownConverter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Conversion failed for {File}", request.SourcePath);
+            // A document we can't convert is an expected outcome, not a crash: the caller gets the
+            // reason in the result, so log the reason rather than dumping a stack trace per file.
+            logger.LogWarning("Conversion failed for {File}: {Reason}", request.SourcePath, ex.Message);
             return ConversionResult.Fail(ex.Message);
         }
     }

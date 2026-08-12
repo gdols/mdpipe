@@ -22,21 +22,18 @@ public sealed class MainViewModel : ObservableObject
     private string? _outputFolder;
     private CancellationTokenSource? _convertCts;
     private readonly UserSettings _settings;
-
-    private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls",
-        ".html", ".htm", ".csv", ".json", ".xml", ".txt", ".png", ".jpg", ".jpeg"
-    };
+    private readonly InputResolver _inputResolver;
 
     public MainViewModel(
         SetupOrchestrator setupOrchestrator,
         IMarkItDownConverter converter,
-        IPythonEnvironmentManager environmentManager)
+        IPythonEnvironmentManager environmentManager,
+        InputResolver inputResolver)
     {
         _setupOrchestrator = setupOrchestrator;
         _converter = converter;
         _environmentManager = environmentManager;
+        _inputResolver = inputResolver;
 
         Files.CollectionChanged += (_, _) => CommandManagerRefresh();
 
@@ -204,48 +201,11 @@ public sealed class MainViewModel : ObservableObject
         if (IsBusy) return;
 
         var existing = Files.Select(f => f.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in paths)
+        foreach (var file in _inputResolver.Resolve(paths, recursive: true).Files)
         {
-            if (File.Exists(path))
-            {
-                if (existing.Add(path))
-                    Files.Add(new FileItemViewModel(path));
-            }
-            else if (Directory.Exists(path))
-            {
-                foreach (var file in FindSupportedFiles(path))
-                    if (existing.Add(file))
-                        Files.Add(new FileItemViewModel(file));
-            }
+            if (existing.Add(file))
+                Files.Add(new FileItemViewModel(file));
         }
-    }
-
-    /// <summary>
-    /// Walks a dropped folder (subfolders included) collecting the file types we can convert,
-    /// skipping anything we're not allowed to read rather than giving up on the whole folder.
-    /// </summary>
-    private static List<string> FindSupportedFiles(string root)
-    {
-        var results = new List<string>();
-        var pending = new Stack<string>();
-        pending.Push(root);
-
-        while (pending.Count > 0)
-        {
-            var dir = pending.Pop();
-            try
-            {
-                foreach (var sub in Directory.GetDirectories(dir))
-                    pending.Push(sub);
-                foreach (var file in Directory.GetFiles(dir))
-                    if (SupportedExtensions.Contains(Path.GetExtension(file)))
-                        results.Add(file);
-            }
-            catch (UnauthorizedAccessException) { }
-            catch (IOException) { }
-        }
-
-        return results;
     }
 
     private async Task ConvertAllAsync()
