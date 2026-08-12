@@ -123,6 +123,10 @@ public class VersionGateServiceTests
     [InlineData("0.1.7", "   ")]
     [InlineData("1.2.x", "0.1.7")]
     [InlineData("0.1.5b1.post2", "0.1.7")]  // pre+post combined is out of scope, better null than wrong
+    [InlineData("2147483648.1", "0.1.7")]    // release component exceeds Int32
+    [InlineData("0.1.7a2147483648", "0.1.7")] // pre-release number exceeds Int32
+    [InlineData("0.1.7.post2147483648", "0.1.7")] // post-release number exceeds Int32
+    [InlineData("0.1.7", "0.1.7rc2147483648")] // oversized right-hand input is also rejected
     public void Compare_WithUnparseableInput_ReturnsNull(string left, string right)
     {
         _sut.Compare(left, right).Should().BeNull();

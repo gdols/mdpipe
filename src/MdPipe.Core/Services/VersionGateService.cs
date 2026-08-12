@@ -68,14 +68,11 @@ public sealed partial class VersionGateService
         // better to say "can't compare" than to order it wrong.
         if (match.Groups[2].Success && match.Groups[4].Success) return false;
 
-        int[] release;
-        try
+        var releaseParts = match.Groups[1].Value.Split('.');
+        var release = new int[releaseParts.Length];
+        for (var i = 0; i < releaseParts.Length; i++)
         {
-            release = match.Groups[1].Value.Split('.').Select(int.Parse).ToArray();
-        }
-        catch (OverflowException)
-        {
-            return false;
+            if (!int.TryParse(releaseParts[i], out release[i])) return false;
         }
 
         // Phase ranks: a=0, b=1, rc=2, final=3, post=4.
@@ -83,11 +80,12 @@ public sealed partial class VersionGateService
         if (match.Groups[2].Success)
         {
             rank = match.Groups[2].Value.ToLowerInvariant() switch { "a" => 0, "b" => 1, _ => 2 };
-            number = int.Parse(match.Groups[3].Value);
+            if (!int.TryParse(match.Groups[3].Value, out number)) return false;
         }
         else if (match.Groups[4].Success)
         {
-            (rank, number) = (4, int.Parse(match.Groups[4].Value));
+            rank = 4;
+            if (!int.TryParse(match.Groups[4].Value, out number)) return false;
         }
 
         parsed = new ParsedVersion(release, rank, number);
