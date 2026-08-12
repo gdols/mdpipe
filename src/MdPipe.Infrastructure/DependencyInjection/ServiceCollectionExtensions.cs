@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMdPipeInfrastructure(this IServiceCollection services, string manifestUrl)
     {
         services.AddSingleton<VersionGateService>();
+        services.AddSingleton<InputResolver>();
         services.AddSingleton<SetupOrchestrator>();
         services.AddSingleton<PythonEnvironmentManager>();
         services.AddSingleton<IPythonEnvironmentManager>(sp => sp.GetRequiredService<PythonEnvironmentManager>());

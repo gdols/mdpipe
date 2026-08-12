@@ -15,6 +15,10 @@ var host = Host.CreateDefaultBuilder(args)
         logging.ClearProviders();
         logging.AddConsole(opts => opts.FormatterName = "simple");
         logging.SetMinimumLevel(LogLevel.Warning);
+
+        // The convert command already reports each file's outcome, so the converter's own warning
+        // would just say the same thing twice. Everything else (manifest, Python setup) still shows.
+        logging.AddFilter("MdPipe.Infrastructure.MarkItDown.MarkItDownConverter", LogLevel.Error);
     })
     .ConfigureServices(services =>
     {
@@ -27,10 +31,11 @@ var environmentManager = host.Services.GetRequiredService<IPythonEnvironmentMana
 var manifestProvider = host.Services.GetRequiredService<IManifestProvider>();
 var versionGate = host.Services.GetRequiredService<VersionGateService>();
 var orchestrator = host.Services.GetRequiredService<SetupOrchestrator>();
+var inputResolver = host.Services.GetRequiredService<InputResolver>();
 
 var root = new RootCommand("MdPipe: convert documents to Markdown using Microsoft MarkItDown")
 {
-    ConvertCommand.Build(converter, environmentManager, manifestProvider, versionGate),
+    ConvertCommand.Build(converter, environmentManager, manifestProvider, versionGate, inputResolver),
     SetupCommand.Build(orchestrator),
     StatusCommand.Build(environmentManager, manifestProvider, versionGate)
 };

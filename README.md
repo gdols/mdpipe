@@ -62,6 +62,19 @@ dotnet run --project src/MdPipe.Cli -- convert report.pdf -o report.md
 dotnet run --project src/MdPipe.Cli -- status
 ```
 
+It takes several inputs at once: files, folders or patterns. With one file and no
+`--output` the Markdown goes to stdout; otherwise `--output` is the folder to fill,
+and without it each file is saved next to its original.
+
+```bash
+mdpipe convert a.pdf b.docx                 # several files
+mdpipe convert .\docs --recursive           # a folder, subfolders included
+mdpipe convert *.pdf --output .\markdown    # a pattern, all into one folder
+```
+
+A file that fails does not stop the rest; you get a summary at the end and a
+non-zero exit code if anything failed, which is what a script wants.
+
 ## How it works
 
 The WPF application and CLI share the same conversion and setup code. MdPipe
