@@ -229,7 +229,11 @@ public sealed class MainViewModel : ObservableObject
         {
             var token = _convertCts.Token;
             var pending = Files.Where(f => f.Status is FileStatus.Pending or FileStatus.Error).ToList();
+            // One resolver per batch, so two files with the same name landing in the same output folder
+            // don't quietly overwrite each other.
+            var outputPaths = new OutputPathResolver();
             var converted = 0;
+            var renamed = 0;
 
             foreach (var file in pending)
             {
@@ -238,8 +242,9 @@ public sealed class MainViewModel : ObservableObject
 
                 try
                 {
-                    var outputPath = BuildOutputPath(file.SourcePath);
-                    var request = ConversionRequest.FromFile(file.SourcePath, outputPath);
+                    var destination = outputPaths.For(file.SourcePath, OutputFolder);
+                    if (destination.Renamed) renamed++;
+                    var request = ConversionRequest.FromFile(file.SourcePath, destination.FullPath);
                     var result = await Task.Run(() => _converter.ConvertAsync(request, token), token);
 
                     if (result.Success)
@@ -267,11 +272,12 @@ public sealed class MainViewModel : ObservableObject
                 }
             }
 
+            var renamedNote = renamed > 0 ? $" · {renamed} renamed to avoid overwriting" : "";
             StatusMessage = cancelled
-                ? $"Cancelled · {converted} file(s) converted so far"
+                ? $"Cancelled · {converted} file(s) converted so far{renamedNote}"
                 : converted == pending.Count
-                    ? $"Done · {converted} file(s) converted"
-                    : $"Finished with warnings · {converted}/{pending.Count} converted";
+                    ? $"Done · {converted} file(s) converted{renamedNote}"
+                    : $"Finished with warnings · {converted}/{pending.Count} converted{renamedNote}";
         }
         finally
         {
@@ -280,15 +286,6 @@ public sealed class MainViewModel : ObservableObject
             IsConverting = false;
             IsBusy = false;
         }
-    }
-
-    private string BuildOutputPath(string sourcePath)
-    {
-        var fileName = Path.GetFileNameWithoutExtension(sourcePath) + ".md";
-        var targetDir = string.IsNullOrEmpty(OutputFolder)
-            ? Path.GetDirectoryName(sourcePath)!
-            : OutputFolder;
-        return Path.Combine(targetDir, fileName);
     }
 
     private void ChooseOutputFolder()
