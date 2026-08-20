@@ -1,4 +1,4 @@
-using System.CommandLine;
+﻿using System.CommandLine;
 using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
@@ -47,6 +47,9 @@ public static class ConvertCommand
 
             foreach (var missing in resolution.NotFound)
                 Console.Error.WriteLine($"Nothing to convert at: {missing}");
+
+            foreach (var blocked in resolution.Unreadable)
+                Console.Error.WriteLine($"Skipped (no permission to read): {blocked}");
 
             if (resolution.Files.Count == 0)
                 return 1;
@@ -111,7 +114,7 @@ public static class ConvertCommand
                     ? $"Converted {converted} file(s)."
                     : $"Converted {converted} file(s), {failed} failed.");
 
-            return failed > 0 || resolution.NotFound.Count > 0 ? 1 : 0;
+            return failed > 0 || resolution.NotFound.Count > 0 || resolution.Unreadable.Count > 0 ? 1 : 0;
         });
 
         return command;

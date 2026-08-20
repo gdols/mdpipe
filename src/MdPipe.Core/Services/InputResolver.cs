@@ -12,10 +12,30 @@ namespace MdPipe.Core.Services;
 /// </remarks>
 public sealed class InputResolver
 {
+    /// <summary>
+    /// What MarkItDown actually converts, taken from the ACCEPTED_FILE_EXTENSIONS of its converter
+    /// modules in 0.1.7 rather than from its README, which is looser than the code. Updating MarkItDown
+    /// is the moment to revisit this list.
+    /// </summary>
+    /// <remarks>
+    /// Two deliberate departures from that list:
+    /// <list type="bullet">
+    /// <item><c>.md</c> is left out. MarkItDown accepts it, but converting Markdown to Markdown lands the
+    /// output on top of the input, so a folder scan would quietly rewrite the user's own notes.</item>
+    /// <item><c>.xml</c> is kept even though no converter claims it. MarkItDown sniffs the content and
+    /// converts it as text, verified against a real file.</item>
+    /// </list>
+    /// <c>.doc</c> and <c>.ppt</c> used to be here and are gone: the legacy binary formats have no
+    /// converter at all, so every one of them failed at conversion time and polluted the batch summary.
+    /// </remarks>
     public static readonly IReadOnlyCollection<string> SupportedExtensions =
     [
-        ".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls",
-        ".html", ".htm", ".csv", ".json", ".xml", ".txt", ".png", ".jpg", ".jpeg"
+        ".pdf", ".epub", ".zip", ".msg",
+        ".docx", ".pptx", ".xlsx", ".xls",
+        ".html", ".htm", ".csv", ".json", ".jsonl", ".xml", ".ipynb",
+        ".txt", ".text", ".markdown",
+        ".png", ".jpg", ".jpeg",
+        ".mp3", ".mp4", ".m4a", ".wav"
     ];
 
     private static readonly HashSet<string> SupportedSet = new(SupportedExtensions, StringComparer.OrdinalIgnoreCase);
@@ -25,6 +45,7 @@ public sealed class InputResolver
         var files = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var notFound = new List<string>();
+        var unreadable = new List<string>();
 
         foreach (var raw in inputs)
         {
@@ -36,9 +57,9 @@ public sealed class InputResolver
             var matches = File.Exists(input)
                 ? [input]
                 : Directory.Exists(input)
-                    ? Supported(EnumerateFolder(input, recursive))
+                    ? Supported(WalkFiles(input, "*", recursive, unreadable))
                     : input.Contains('*') || input.Contains('?')
-                        ? Supported(ExpandWildcard(input, recursive))
+                        ? Supported(ExpandWildcard(input, recursive, unreadable))
                         : (IReadOnlyList<string>)[];
 
             // Nothing matched: a typo, an empty folder, a pattern that hit nothing. Worth saying out
@@ -56,7 +77,7 @@ public sealed class InputResolver
             }
         }
 
-        return new InputResolution(files, notFound);
+        return new InputResolution(files, notFound, unreadable);
     }
 
     private static IReadOnlyList<string> Supported(IEnumerable<string> candidates) =>
@@ -66,41 +87,45 @@ public sealed class InputResolver
             .ToList();
 
     /// <summary>
-    /// Walks a folder iteratively so one unreadable subfolder costs us that subfolder,
-    /// not the whole batch (Directory.EnumerateFiles with AllDirectories throws and stops).
+    /// Walks a tree one directory at a time, matching <paramref name="mask"/> as it goes.
     /// </summary>
-    private static IEnumerable<string> EnumerateFolder(string root, bool recursive)
+    /// <remarks>
+    /// The manual walk is the point. <c>Directory.EnumerateFiles</c> with <c>AllDirectories</c> is lazy,
+    /// so a locked subfolder throws later, while the caller is iterating, where no try/catch of ours can
+    /// help. Going directory by directory with the eager <c>GetFiles</c>/<c>GetDirectories</c> keeps each
+    /// failure contained, and every folder we couldn't open is recorded so the caller can report it.
+    /// </remarks>
+    private static List<string> WalkFiles(string root, string mask, bool recursive, List<string> unreadable)
     {
+        var results = new List<string>();
         var pending = new Stack<string>();
         pending.Push(root);
 
         while (pending.Count > 0)
         {
             var dir = pending.Pop();
-            string[] files;
             try
             {
                 if (recursive)
                     foreach (var sub in Directory.GetDirectories(dir))
                         pending.Push(sub);
 
-                files = Directory.GetFiles(dir);
+                results.AddRange(Directory.GetFiles(dir, mask));
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
             {
-                continue;
+                unreadable.Add(dir);
             }
-
-            foreach (var file in files)
-                yield return file;
         }
+
+        return results;
     }
 
     /// <summary>
     /// Expands patterns like <c>*.pdf</c> or <c>docs\report?.docx</c>. Windows shells hand wildcards
     /// through untouched, so the expansion has to happen here.
     /// </summary>
-    private static IEnumerable<string> ExpandWildcard(string pattern, bool recursive)
+    private static List<string> ExpandWildcard(string pattern, bool recursive, List<string> unreadable)
     {
         var directory = Path.GetDirectoryName(pattern);
         var mask = Path.GetFileName(pattern);
@@ -109,15 +134,6 @@ public sealed class InputResolver
         if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
         if (!Directory.Exists(directory)) return [];
 
-        try
-        {
-            return Directory.EnumerateFiles(
-                directory, mask,
-                recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
-        {
-            return [];
-        }
+        return WalkFiles(directory, mask, recursive, unreadable);
     }
 }

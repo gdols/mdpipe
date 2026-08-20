@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using MdPipe.Core.Services;
 
 namespace MdPipe.Core.Tests;
@@ -157,5 +157,72 @@ public sealed class InputResolverTests : IDisposable
 
         result.Files.Should().BeEmpty();
         result.NotFound.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("legacy.doc")]   // no converter in MarkItDown, used to fail at conversion time
+    [InlineData("legacy.ppt")]   // same
+    [InlineData("notes.md")]     // would convert onto itself and rewrite the user's own file
+    [InlineData("program.exe")]
+    public void Resolve_WithAFolder_LeavesOutWhatWeShouldNotConvert(string fileName)
+    {
+        CreateFile("docs/keep.pdf");
+        CreateFile("docs/" + fileName);
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")]);
+
+        NamesOf(result.Files).Should().BeEquivalentTo(["keep.pdf"]);
+    }
+
+    [Theory]
+    [InlineData("book.epub")]
+    [InlineData("bundle.zip")]
+    [InlineData("mail.msg")]
+    [InlineData("sheet.xls")]
+    [InlineData("notebook.ipynb")]
+    [InlineData("audio.mp3")]
+    public void Resolve_WithAFolder_PicksUpEverythingMarkItDownConverts(string fileName)
+    {
+        CreateFile("docs/" + fileName);
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")]);
+
+        NamesOf(result.Files).Should().BeEquivalentTo([fileName]);
+    }
+
+    [Fact]
+    public void Resolve_WithAnExplicitFile_StillTakesFormatsAFolderScanWouldSkip()
+    {
+        // Naming a file yourself is a deliberate act, so the filter doesn't apply.
+        var legacy = CreateFile("legacy.doc");
+
+        var result = _sut.Resolve([legacy]);
+
+        result.Files.Should().ContainSingle().Which.Should().Be(legacy);
+    }
+
+    [Fact]
+    public void Resolve_WithARecursiveWildcard_WalksTheTreeWithoutThrowing()
+    {
+        // Regression: this used to go through Directory.EnumerateFiles(AllDirectories), whose lazy
+        // enumeration threw past the try/catch and took the whole command down.
+        CreateFile("one.pdf");
+        CreateFile("deep/two.pdf");
+        CreateFile("deep/deeper/three.pdf");
+
+        var act = () => _sut.Resolve([Path.Combine(_root, "*.pdf")], recursive: true);
+
+        act.Should().NotThrow();
+        NamesOf(act().Files).Should().BeEquivalentTo(["one.pdf", "two.pdf", "three.pdf"]);
+    }
+
+    [Fact]
+    public void Resolve_OnAReadableTree_ReportsNothingAsUnreadable()
+    {
+        CreateFile("docs/a.pdf");
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")], recursive: true);
+
+        result.Unreadable.Should().BeEmpty();
     }
 }
