@@ -83,16 +83,28 @@ public static class ConvertCommand
             var outputFolder = ResolveOutputFolder(output, inputs, resolution.Files.Count);
             if (outputFolder is not null) Directory.CreateDirectory(outputFolder);
 
+            var outputPaths = new OutputPathResolver();
             var converted = 0;
             var failed = 0;
+            var renamed = 0;
 
             foreach (var file in resolution.Files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var outputPath = toStdout ? null : BuildOutputPath(file, output, outputFolder);
+                OutputPath? destination = null;
+                if (!toStdout)
+                {
+                    // An explicit --output file is the exact path the user asked for; anything else goes
+                    // through the resolver, which keeps a batch from writing twice to the same name.
+                    destination = outputFolder is null && output is not null
+                        ? new OutputPath(Path.GetFullPath(output), false)
+                        : outputPaths.For(file, outputFolder);
+                    if (destination.Renamed) renamed++;
+                }
+
                 var result = await converter.ConvertAsync(
-                    ConversionRequest.FromFile(file, outputPath), cancellationToken);
+                    ConversionRequest.FromFile(file, destination?.FullPath), cancellationToken);
 
                 if (!result.Success)
                 {
@@ -104,15 +116,22 @@ public static class ConvertCommand
 
                 converted++;
                 if (result.OutputPath is not null)
-                    Console.WriteLine($"Saved to: {result.OutputPath}");
+                    Console.WriteLine(destination?.Renamed == true
+                        ? $"Saved to: {result.OutputPath}  (renamed, {Path.GetFileNameWithoutExtension(file)}.md was already taken in this run)"
+                        : $"Saved to: {result.OutputPath}");
                 else
                     Console.Write(result.MarkdownContent);
             }
 
             if (resolution.Files.Count > 1)
-                Console.WriteLine(failed == 0
+            {
+                var summary = failed == 0
                     ? $"Converted {converted} file(s)."
-                    : $"Converted {converted} file(s), {failed} failed.");
+                    : $"Converted {converted} file(s), {failed} failed.";
+                if (renamed > 0)
+                    summary += $" {renamed} renamed to avoid overwriting another.";
+                Console.WriteLine(summary);
+            }
 
             return failed > 0 || resolution.NotFound.Count > 0 || resolution.Unreadable.Count > 0 ? 1 : 0;
         });
@@ -136,16 +155,5 @@ public static class ConvertCommand
             output.EndsWith(Path.AltDirectorySeparatorChar);
 
         return singleNamedFile && !looksLikeFolder ? null : output;
-    }
-
-    private static string BuildOutputPath(string sourcePath, string? output, string? outputFolder)
-    {
-        var markdownName = Path.GetFileNameWithoutExtension(sourcePath) + ".md";
-
-        if (outputFolder is not null)
-            return Path.GetFullPath(Path.Combine(outputFolder, markdownName));
-
-        // A single named file: --output is the exact file to write, otherwise sit next to the original.
-        return Path.GetFullPath(output ?? Path.Combine(Path.GetDirectoryName(sourcePath)!, markdownName));
     }
 }
