@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using MdPipe.Core.Exceptions;
@@ -201,11 +201,20 @@ public sealed class MainViewModel : ObservableObject
         if (IsBusy) return;
 
         var existing = Files.Select(f => f.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var file in _inputResolver.Resolve(paths, recursive: true).Files)
+        var resolution = _inputResolver.Resolve(paths, recursive: true);
+
+        foreach (var file in resolution.Files)
         {
             if (existing.Add(file))
                 Files.Add(new FileItemViewModel(file));
         }
+
+        // Folders we couldn't open would otherwise vanish without a trace, and a partial list of files
+        // looks exactly like a complete one.
+        if (resolution.Unreadable.Count > 0)
+            StatusMessage = resolution.Unreadable.Count == 1
+                ? "Skipped 1 folder you don't have permission to read."
+                : $"Skipped {resolution.Unreadable.Count} folders you don't have permission to read.";
     }
 
     private async Task ConvertAllAsync()
