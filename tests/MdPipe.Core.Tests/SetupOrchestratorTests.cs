@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
@@ -124,6 +124,19 @@ public class SetupOrchestratorTests
     }
 
     [Fact]
+    public async Task RunAsync_WhenNothingNeedsInstalling_StillChecksTheFormatCatalog()
+    {
+        // The catalog used to be written only as part of an install, so an environment that was
+        // already up to date never got one and the app fell back to the bundled list forever.
+        _environment.Info = Ready("0.1.7");
+
+        await BuildSut(BuildManifest("0.1.7", "0.1.7")).RunAsync();
+
+        _environment.SetupCalls.Should().BeEmpty();
+        _environment.FormatCatalogChecks.Should().Be(1);
+    }
+
+    [Fact]
     public async Task RunAsync_ReportsProgressAlongTheWay()
     {
         _environment.Info = Ready("0.1.6");
@@ -164,6 +177,14 @@ public class SetupOrchestratorTests
 
         public Task<string?> GetInstalledVersionAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(Info.InstalledMarkItDownVersion);
+
+        public int FormatCatalogChecks { get; private set; }
+
+        public Task EnsureFormatCatalogAsync(CancellationToken cancellationToken = default)
+        {
+            FormatCatalogChecks++;
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>Progress&lt;T&gt; posts to a sync context; this one invokes inline so tests can assert right away.</summary>

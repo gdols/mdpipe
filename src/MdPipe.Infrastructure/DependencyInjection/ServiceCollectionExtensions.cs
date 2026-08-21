@@ -1,4 +1,4 @@
-using MdPipe.Core.Interfaces;
+﻿using MdPipe.Core.Interfaces;
 using MdPipe.Core.Services;
 using MdPipe.Infrastructure.MarkItDown;
 using MdPipe.Infrastructure.Manifest;
@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMdPipeInfrastructure(this IServiceCollection services, string manifestUrl)
     {
         services.AddSingleton<VersionGateService>();
+        services.AddSingleton<FormatCatalogProvider>();
         services.AddSingleton<InputResolver>();
         services.AddSingleton<SetupOrchestrator>();
         services.AddSingleton<PythonEnvironmentManager>();

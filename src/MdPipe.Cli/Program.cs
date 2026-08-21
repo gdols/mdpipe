@@ -1,4 +1,4 @@
-using System.CommandLine;
+﻿using System.CommandLine;
 using MdPipe.Cli.Commands;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Services;
@@ -32,12 +32,14 @@ var manifestProvider = host.Services.GetRequiredService<IManifestProvider>();
 var versionGate = host.Services.GetRequiredService<VersionGateService>();
 var orchestrator = host.Services.GetRequiredService<SetupOrchestrator>();
 var inputResolver = host.Services.GetRequiredService<InputResolver>();
+var formatCatalog = host.Services.GetRequiredService<FormatCatalogProvider>();
 
 var root = new RootCommand("MdPipe: convert documents to Markdown using Microsoft MarkItDown")
 {
     ConvertCommand.Build(converter, environmentManager, manifestProvider, versionGate, inputResolver),
     SetupCommand.Build(orchestrator),
-    StatusCommand.Build(environmentManager, manifestProvider, versionGate)
+    StatusCommand.Build(environmentManager, manifestProvider, versionGate),
+    FormatsCommand.Build(formatCatalog)
 };
 
 return await root.Parse(args).InvokeAsync();

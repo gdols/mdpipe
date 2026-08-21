@@ -114,6 +114,53 @@ public sealed class PythonEnvironmentManager(
         return WorkerScript;
     }
 
+    private static string FormatCatalogPath => Path.Combine(Root, "formats.json");
+
+    /// <summary>
+    /// Asks MarkItDown what it can read and stores the answer, so MdPipe reports the truth about this
+    /// machine instead of a list somebody typed out once. Skipped when the stored answer already
+    /// belongs to the installed version, since asking costs a Python start-up.
+    /// </summary>
+    public async Task EnsureFormatCatalogAsync(CancellationToken cancellationToken = default)
+    {
+        var pythonExe = ReadyPython;
+        if (pythonExe is null) return;
+
+        try
+        {
+            var installed = await GetInstalledVersionAsync(pythonExe, cancellationToken);
+            if (installed is not null && File.Exists(FormatCatalogPath) &&
+                (await File.ReadAllTextAsync(FormatCatalogPath, cancellationToken)).Contains($"\"{installed}\""))
+                return;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Fall through and just rewrite it.
+        }
+
+        try
+        {
+            var json = await RunProcessAsync(
+                pythonExe, $"\"{EnsureWorkerScript()}\" --formats", cancellationToken, captureOutput: true);
+
+            var line = json.Split('\n').FirstOrDefault(l => l.TrimStart().StartsWith('{'));
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                logger.LogWarning("The engine did not report its formats; the bundled list stays in use.");
+                return;
+            }
+
+            Directory.CreateDirectory(Root);
+            await File.WriteAllTextAsync(FormatCatalogPath, line.Trim(), cancellationToken);
+            logger.LogInformation("Recorded the engine's supported formats at {Path}", FormatCatalogPath);
+        }
+        catch (Exception ex) when (ex is PythonEnvironmentException or IOException or UnauthorizedAccessException)
+        {
+            // Not knowing the exact list is a cosmetic loss, not a reason to fail a setup that worked.
+            logger.LogWarning(ex, "Could not record the engine's supported formats; the bundled list stays in use.");
+        }
+    }
+
     private static string ReadEmbeddedWorker()
     {
         using var stream = typeof(PythonEnvironmentManager).Assembly.GetManifestResourceStream(WorkerResourceName)

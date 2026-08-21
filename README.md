@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="assets/banner.png" alt="MdPipe, convert your documents to Markdown" width="820">
 </p>
 
@@ -41,7 +41,10 @@ them to install Python or work from a terminal.
 ## What it does
 
 - Converts several files in one batch using drag and drop. Folders work too,
-  subfolders included.
+  subfolders included, and a whole batch shares one engine process instead of
+  starting a new one per file.
+- Knows what it can read by asking the engine installed on your machine, so the
+  list in the app is never a stale copy of someone else's documentation.
 - Saves the Markdown beside the original or in a chosen folder, and remembers
   your choice for next time.
 - Shows real download progress during the first-run setup, and conversions can
@@ -70,6 +73,8 @@ and without it each file is saved next to its original.
 mdpipe convert a.pdf b.docx                 # several files
 mdpipe convert .\docs --recursive           # a folder, subfolders included
 mdpipe convert *.pdf --output .\markdown    # a pattern, all into one folder
+mdpipe convert .\docs --all-files           # try everything, not just known formats
+mdpipe formats                              # what this machine's engine can read
 ```
 
 A file that fails does not stop the rest; you get a summary at the end and a

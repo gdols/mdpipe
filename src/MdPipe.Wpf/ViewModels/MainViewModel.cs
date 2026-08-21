@@ -23,17 +23,21 @@ public sealed class MainViewModel : ObservableObject
     private CancellationTokenSource? _convertCts;
     private readonly UserSettings _settings;
     private readonly InputResolver _inputResolver;
+    private readonly FormatCatalogProvider _formats;
+    private bool _includeEverything;
 
     public MainViewModel(
         SetupOrchestrator setupOrchestrator,
         IMarkItDownConverter converter,
         IPythonEnvironmentManager environmentManager,
-        InputResolver inputResolver)
+        InputResolver inputResolver,
+        FormatCatalogProvider formats)
     {
         _setupOrchestrator = setupOrchestrator;
         _converter = converter;
         _environmentManager = environmentManager;
         _inputResolver = inputResolver;
+        _formats = formats;
 
         Files.CollectionChanged += (_, _) => CommandManagerRefresh();
 
@@ -114,6 +118,19 @@ public sealed class MainViewModel : ObservableObject
             }
         }
     }
+
+    /// <summary>
+    /// Try every file a folder holds instead of only the known formats, letting the engine decide by
+    /// content. Off by default, or scanning an ordinary folder would fill the list with .exe and .dll.
+    /// </summary>
+    public bool IncludeEverything
+    {
+        get => _includeEverything;
+        set => SetProperty(ref _includeEverything, value);
+    }
+
+    /// <summary>What the installed engine says it can read, for the formats window.</summary>
+    public FormatCatalog Formats => _formats.Get();
 
     public string OutputFolderDisplay => string.IsNullOrEmpty(OutputFolder)
         ? "Next to each original file"
@@ -201,7 +218,7 @@ public sealed class MainViewModel : ObservableObject
         if (IsBusy) return;
 
         var existing = Files.Select(f => f.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var resolution = _inputResolver.Resolve(paths, recursive: true);
+        var resolution = _inputResolver.Resolve(paths, recursive: true, includeEverything: IncludeEverything);
 
         foreach (var file in resolution.Files)
         {

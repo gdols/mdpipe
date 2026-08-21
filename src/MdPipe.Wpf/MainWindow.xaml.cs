@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using MdPipe.Wpf.ViewModels;
 
@@ -40,11 +40,28 @@ public partial class MainWindow : Window
         {
             Title = "Choose the files to convert",
             Multiselect = true,
-            Filter = "Supported documents|*.pdf;*.docx;*.doc;*.pptx;*.ppt;*.xlsx;*.xls;*.html;*.htm;*.csv;*.json;*.xml;*.txt;*.png;*.jpg;*.jpeg|All files|*.*"
+            // Built from what the engine reports rather than typed out: the hand-written version was
+            // still offering .doc and .ppt, which stopped converting long ago.
+            Filter = BuildFilter()
         };
 
         if (dialog.ShowDialog() == true)
             ViewModel?.AddFiles(dialog.FileNames);
+    }
+
+    private string BuildFilter()
+    {
+        var extensions = ViewModel?.Formats.Extensions ?? [];
+        if (extensions.Count == 0) return "All files|*.*";
+
+        var patterns = string.Join(";", extensions.Select(e => "*" + e));
+        return $"Supported documents|{patterns}|All files|*.*";
+    }
+
+    private void FormatsLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null) return;
+        new FormatsWindow(ViewModel.Formats) { Owner = this }.ShowDialog();
     }
 
     private void HelpButton_Click(object sender, RoutedEventArgs e)
