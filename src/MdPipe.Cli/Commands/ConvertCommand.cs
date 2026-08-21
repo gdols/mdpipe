@@ -29,12 +29,19 @@ public static class ConvertCommand
         {
             Description = "Look inside subfolders too"
         };
+        var allFilesOpt = new Option<bool>("--all-files")
+        {
+            Description = "When scanning folders or patterns, try every file instead of only known " +
+                          "formats, letting the engine decide by content. Picks up files with a wrong " +
+                          "or missing extension, at the cost of attempting things that can't work."
+        };
 
         var command = new Command("convert", "Convert documents to Markdown")
         {
             inputsArg,
             outputOpt,
-            recursiveOpt
+            recursiveOpt,
+            allFilesOpt
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
@@ -42,8 +49,9 @@ public static class ConvertCommand
             var inputs = parseResult.GetValue(inputsArg) ?? [];
             var output = parseResult.GetValue(outputOpt);
             var recursive = parseResult.GetValue(recursiveOpt);
+            var allFiles = parseResult.GetValue(allFilesOpt);
 
-            var resolution = inputResolver.Resolve(inputs, recursive);
+            var resolution = inputResolver.Resolve(inputs, recursive, allFiles);
 
             foreach (var missing in resolution.NotFound)
                 Console.Error.WriteLine($"Nothing to convert at: {missing}");

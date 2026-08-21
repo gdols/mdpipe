@@ -8,40 +8,23 @@ namespace MdPipe.Core.Services;
 /// </summary>
 /// <remarks>
 /// A file named explicitly is always taken, whatever its extension: if you asked for it, you meant it.
-/// Folders and wildcards are bulk selectors, so those are filtered down to the formats we support.
+/// Folders and wildcards are bulk selectors, so those are filtered down to what the installed
+/// MarkItDown says it can read, unless the caller asks for everything.
 /// </remarks>
-public sealed class InputResolver
+public sealed class InputResolver(FormatCatalogProvider formats)
 {
     /// <summary>
-    /// What MarkItDown actually converts, taken from the ACCEPTED_FILE_EXTENSIONS of its converter
-    /// modules in 0.1.7 rather than from its README, which is looser than the code. Updating MarkItDown
-    /// is the moment to revisit this list.
+    /// The one format decision MdPipe makes for itself. MarkItDown will happily convert Markdown, but
+    /// the output lands exactly where the input was, so a folder scan would rewrite the user's own
+    /// notes with a reformatted copy of themselves. Naming a <c>.md</c> file explicitly still works.
     /// </summary>
-    /// <remarks>
-    /// Two deliberate departures from that list:
-    /// <list type="bullet">
-    /// <item><c>.md</c> is left out. MarkItDown accepts it, but converting Markdown to Markdown lands the
-    /// output on top of the input, so a folder scan would quietly rewrite the user's own notes.</item>
-    /// <item><c>.xml</c> is kept even though no converter claims it. MarkItDown sniffs the content and
-    /// converts it as text, verified against a real file.</item>
-    /// </list>
-    /// <c>.doc</c> and <c>.ppt</c> used to be here and are gone: the legacy binary formats have no
-    /// converter at all, so every one of them failed at conversion time and polluted the batch summary.
-    /// </remarks>
-    public static readonly IReadOnlyCollection<string> SupportedExtensions =
-    [
-        ".pdf", ".epub", ".zip", ".msg",
-        ".docx", ".pptx", ".xlsx", ".xls",
-        ".html", ".htm", ".csv", ".json", ".jsonl", ".xml", ".ipynb",
-        ".txt", ".text", ".markdown",
-        ".png", ".jpg", ".jpeg",
-        ".mp3", ".mp4", ".m4a", ".wav"
-    ];
+    private const string SelfOverwritingExtension = ".md";
 
-    private static readonly HashSet<string> SupportedSet = new(SupportedExtensions, StringComparer.OrdinalIgnoreCase);
-
-    public InputResolution Resolve(IEnumerable<string> inputs, bool recursive = false)
+    public InputResolution Resolve(
+        IEnumerable<string> inputs, bool recursive = false, bool includeEverything = false)
     {
+        var supported = BuildFilter(includeEverything);
+
         var files = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var notFound = new List<string>();
@@ -53,13 +36,13 @@ public sealed class InputResolver
 
             var input = raw.Trim().Trim('"');
 
-            // An explicit file is taken as-is; folders and patterns are filtered to what we can convert.
+            // An explicit file is taken as-is; folders and patterns go through the filter.
             var matches = File.Exists(input)
                 ? [input]
                 : Directory.Exists(input)
-                    ? Supported(WalkFiles(input, "*", recursive, unreadable))
+                    ? Filter(WalkFiles(input, "*", recursive, unreadable), supported)
                     : input.Contains('*') || input.Contains('?')
-                        ? Supported(ExpandWildcard(input, recursive, unreadable))
+                        ? Filter(ExpandWildcard(input, recursive, unreadable), supported)
                         : (IReadOnlyList<string>)[];
 
             // Nothing matched: a typo, an empty folder, a pattern that hit nothing. Worth saying out
@@ -80,9 +63,22 @@ public sealed class InputResolver
         return new InputResolution(files, notFound, unreadable);
     }
 
-    private static IReadOnlyList<string> Supported(IEnumerable<string> candidates) =>
+    /// <summary>
+    /// The set of extensions a bulk selector will pick up, or null when the caller wants everything and
+    /// is happy to let MarkItDown decide by content (which is how a file with a wrong or missing
+    /// extension gets converted at all).
+    /// </summary>
+    private HashSet<string>? BuildFilter(bool includeEverything) =>
+        includeEverything ? null : new HashSet<string>(formats.Get().Extensions, StringComparer.OrdinalIgnoreCase);
+
+    private static IReadOnlyList<string> Filter(IEnumerable<string> candidates, HashSet<string>? supported) =>
         candidates
-            .Where(p => SupportedSet.Contains(Path.GetExtension(p)))
+            .Where(p =>
+            {
+                var extension = Path.GetExtension(p);
+                if (extension.Equals(SelfOverwritingExtension, StringComparison.OrdinalIgnoreCase)) return false;
+                return supported is null || supported.Contains(extension);
+            })
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToList();
 

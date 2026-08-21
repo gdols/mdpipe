@@ -124,7 +124,8 @@ public sealed class MarkItDownConverter(
         {
             var reason = response?.Error ?? "unknown error";
             logger.LogWarning("Conversion failed for {File}: {Reason}", request.SourcePath, reason);
-            return (ConversionResult.Fail($"MarkItDown could not convert the file: {reason}"), false);
+            return (ConversionResult.Fail(
+                LegacyOfficeAdvice(request.SourcePath) ?? $"MarkItDown could not convert the file: {reason}"), false);
         }
 
         var markdown = response.Markdown ?? string.Empty;
@@ -174,6 +175,23 @@ public sealed class MarkItDownConverter(
 
         return $"MarkItDown could not convert the file: {message}";
     }
+
+    /// <summary>
+    /// Turns the engine's shrug at a 1990s Office file into something the user can act on.
+    /// </summary>
+    /// <remarks>
+    /// MarkItDown has no converter for the old binary formats, and there is no pure-Python reader worth
+    /// depending on, so the only real fix is on the user's side. Saying "no converter attempted a
+    /// conversion" tells them nothing; saying "save it as .docx" tells them everything.
+    /// </remarks>
+    private static string? LegacyOfficeAdvice(string sourcePath) =>
+        Path.GetExtension(sourcePath).ToLowerInvariant() switch
+        {
+            ".doc" => "Word 97-2003 files (.doc) aren't supported. Open it in Word and save it as .docx, then convert that.",
+            ".ppt" => "PowerPoint 97-2003 files (.ppt) aren't supported. Open it in PowerPoint and save it as .pptx, then convert that.",
+            ".xlw" => "This is a Excel 4.0 workspace, which isn't supported. Open it in Excel and save it as .xlsx, then convert that.",
+            _ => null
+        };
 
     private sealed record WorkerResponse(string? Path, bool Ok, string? Markdown, string? Error);
 

@@ -5,7 +5,10 @@ namespace MdPipe.Core.Tests;
 
 public sealed class InputResolverTests : IDisposable
 {
-    private readonly InputResolver _sut = new();
+    // Pointed at a catalog that doesn't exist on purpose: the tests then run against the bundled
+    // baseline instead of whatever MarkItDown happens to be installed on the machine running them.
+    private readonly InputResolver _sut = new(new FormatCatalogProvider(
+        Path.Combine(Path.GetTempPath(), "mdpipe-tests", "no-catalog-here.json")));
     private readonly string _root = Path.Combine(Path.GetTempPath(), "mdpipe-tests", Guid.NewGuid().ToString("N"));
 
     public InputResolverTests() => Directory.CreateDirectory(_root);
@@ -214,6 +217,31 @@ public sealed class InputResolverTests : IDisposable
 
         act.Should().NotThrow();
         NamesOf(act().Files).Should().BeEquivalentTo(["one.pdf", "two.pdf", "three.pdf"]);
+    }
+
+    [Fact]
+    public void Resolve_WithIncludeEverything_TakesFilesTheFilterWouldSkip()
+    {
+        // The escape hatch for files whose extension lies or is missing: the engine decides by content.
+        CreateFile("docs/report.pdf");
+        CreateFile("docs/no_extension_at_all");
+        CreateFile("docs/mislabelled.zzz");
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")], includeEverything: true);
+
+        NamesOf(result.Files).Should().BeEquivalentTo(["report.pdf", "no_extension_at_all", "mislabelled.zzz"]);
+    }
+
+    [Fact]
+    public void Resolve_WithIncludeEverything_StillLeavesMarkdownAlone()
+    {
+        // Even in "try everything" mode, converting a .md would write over the file it just read.
+        CreateFile("docs/report.pdf");
+        CreateFile("docs/notes.md");
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")], includeEverything: true);
+
+        NamesOf(result.Files).Should().BeEquivalentTo(["report.pdf"]);
     }
 
     [Fact]
