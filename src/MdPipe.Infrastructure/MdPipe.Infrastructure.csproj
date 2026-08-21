@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\MdPipe.Core\MdPipe.Core.csproj" />
@@ -12,6 +12,8 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\manifest\markitdown-compat.json"
                       LogicalName="MdPipe.Infrastructure.Resources.markitdown-compat.json" />
+    <EmbeddedResource Include="MarkItDown\worker.py"
+                      LogicalName="MdPipe.Infrastructure.Resources.worker.py" />
   </ItemGroup>
 
   <PropertyGroup>
