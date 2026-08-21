@@ -45,6 +45,10 @@ them to install Python or work from a terminal.
   starting a new one per file.
 - Knows what it can read by asking the engine installed on your machine, so the
   list in the app is never a stale copy of someone else's documentation.
+- Speaks the language Windows is set to: Spanish on a Spanish machine, English
+  everywhere else.
+- Opens files dropped straight onto the executable, or sent to it with
+  "Open with".
 - Saves the Markdown beside the original or in a chosen folder, and remembers
   your choice for next time.
 - Shows real download progress during the first-run setup, and conversions can
