@@ -1,5 +1,6 @@
-using System.Windows;
+﻿using System.Windows;
 using MdPipe.Core.Models;
+using MdPipe.Wpf.Resources;
 
 namespace MdPipe.Wpf;
 
@@ -12,11 +13,11 @@ public partial class FormatsWindow : Window
         // Saying where the list came from matters: before the first setup finishes it is the list
         // MdPipe ships with, and promising formats the machine hasn't installed yet would be a lie.
         SourceLine.Text = catalog.IsBaseline
-            ? "The formats MdPipe ships knowing about. Once it finishes setting itself up, this list comes straight from the engine on this computer."
-            : $"Read from MarkItDown {catalog.EngineVersion}, the engine installed on this computer.";
+            ? Strings.FormatsFromBundle
+            : string.Format(Strings.FormatsFromEngine, catalog.EngineVersion);
 
         Extensions.ItemsSource = catalog.Extensions;
-        CountLine.Text = $"{catalog.Extensions.Count} formats.";
+        CountLine.Text = string.Format(Strings.FormatsCount, catalog.Extensions.Count);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

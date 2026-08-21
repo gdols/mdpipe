@@ -6,6 +6,7 @@ using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
 using MdPipe.Wpf.Mvvm;
+using MdPipe.Wpf.Resources;
 using MdPipe.Wpf.Services;
 
 namespace MdPipe.Wpf.ViewModels;
@@ -19,7 +20,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _isBusy;
     private bool _isReady;
     private bool _isConverting;
-    private string _statusMessage = "Starting…";
+    private string _statusMessage = Strings.Starting;
     private string? _outputFolder;
     private CancellationTokenSource? _convertCts;
     private readonly UserSettings _settings;
@@ -138,7 +139,7 @@ public sealed class MainViewModel : ObservableObject
     public FormatCatalog Formats => _formats.Get();
 
     public string OutputFolderDisplay => string.IsNullOrEmpty(OutputFolder)
-        ? "Next to each original file"
+        ? Strings.NextToEachOriginal
         : OutputFolder;
 
     public bool CanConvert => IsReady && !IsBusy && Files.Count > 0;
@@ -151,7 +152,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task ReinstallAsync()
     {
-        StatusMessage = "Reinstalling the environment…";
+        StatusMessage = Strings.Reinstalling;
         await PrepareEnvironmentAsync(forceReinstall: true);
     }
 
@@ -164,15 +165,13 @@ public sealed class MainViewModel : ObservableObject
             var result = await Task.Run(() => _setupOrchestrator.RunAsync(forceReinstall, progress));
 
             IsReady = true;
-            StatusMessage = $"Ready · MarkItDown {result.Version}";
+            StatusMessage = string.Format(Strings.ReadyWithVersion, result.Version);
         }
         catch (PythonNotFoundException)
         {
             IsReady = false;
-            StatusMessage = "Python is missing. Install Python 3.10 or later and reopen the app.";
-            _dialogs.ShowMessage("MdPipe needs Python 3.10 or later installed on the system.\n\n" +
-                "Download it for free from python.org, install it, and reopen MdPipe.",
-                "Python missing", DialogKind.Warning);
+            StatusMessage = Strings.PythonMissingStatus;
+            _dialogs.ShowMessage(Strings.PythonMissingBody, Strings.PythonMissingTitle, DialogKind.Warning);
         }
         catch (PythonEnvironmentException ex)
         {
@@ -180,30 +179,30 @@ public sealed class MainViewModel : ObservableObject
             if (envInfo.IsReady && envInfo.InstalledMarkItDownVersion is not null)
             {
                 IsReady = true;
-                StatusMessage = $"Ready · MarkItDown {envInfo.InstalledMarkItDownVersion}";
+                StatusMessage = string.Format(Strings.ReadyWithVersion, envInfo.InstalledMarkItDownVersion);
             }
             else
             {
                 IsReady = false;
-                StatusMessage = "Couldn't finish setting up MarkItDown.";
-                _dialogs.ShowMessage("MdPipe couldn't finish its first-time setup.\n\n" + ex.Message + "\n\n" +
-                    "The first run needs internet to download from python.org and PyPI. On a company " +
-                    "network, a proxy, firewall, VPN or antivirus can block it.",
-                    "Setup couldn't finish", DialogKind.Warning);
+                StatusMessage = Strings.SetupUnfinishedStatus;
+                _dialogs.ShowMessage(
+                    string.Format(Strings.SetupUnfinishedBody, ex.Message),
+                    Strings.SetupUnfinishedTitle, DialogKind.Warning);
             }
         }
         catch (MdPipeException ex)
         {
             IsReady = false;
-            StatusMessage = "Couldn't prepare MarkItDown.";
-            _dialogs.ShowMessage(ex.Message, "Error preparing MdPipe", DialogKind.Error);
+            StatusMessage = Strings.PrepareFailedStatus;
+            _dialogs.ShowMessage(ex.Message, Strings.PrepareFailedTitle, DialogKind.Error);
         }
         catch (Exception ex)
         {
             IsReady = false;
-            StatusMessage = "Couldn't finish setup.";
-            _dialogs.ShowMessage("MdPipe couldn't finish setting up.\n\n" + ex.Message,
-                "Setup couldn't finish", DialogKind.Error);
+            StatusMessage = Strings.SetupFailedStatus;
+            _dialogs.ShowMessage(
+                string.Format(Strings.SetupFailedBody, ex.Message),
+                Strings.SetupUnfinishedTitle, DialogKind.Error);
         }
         finally
         {
@@ -228,15 +227,15 @@ public sealed class MainViewModel : ObservableObject
         // looks exactly like a complete one.
         if (resolution.Unreadable.Count > 0)
             StatusMessage = resolution.Unreadable.Count == 1
-                ? "Skipped 1 folder you don't have permission to read."
-                : $"Skipped {resolution.Unreadable.Count} folders you don't have permission to read.";
+                ? Strings.SkippedFolderOne
+                : string.Format(Strings.SkippedFolderMany, resolution.Unreadable.Count);
     }
 
     private async Task ConvertAllAsync()
     {
         IsBusy = true;
         IsConverting = true;
-        StatusMessage = "Converting files…";
+        StatusMessage = Strings.ConvertingFiles;
         _convertCts = new CancellationTokenSource();
         var cancelled = false;
 
@@ -306,12 +305,12 @@ public sealed class MainViewModel : ObservableObject
                 if (pending[i].Status == FileStatus.Converting)
                     pending[i].Status = FileStatus.Pending;
 
-            var renamedNote = renamed > 0 ? $" · {renamed} renamed to avoid overwriting" : "";
-            StatusMessage = cancelled
-                ? $"Cancelled · {converted} file(s) converted so far{renamedNote}"
+            var renamedNote = renamed > 0 ? string.Format(Strings.RenamedNote, renamed) : "";
+            StatusMessage = (cancelled
+                ? string.Format(Strings.CancelledCount, converted)
                 : converted == pending.Count
-                    ? $"Done · {converted} file(s) converted{renamedNote}"
-                    : $"Finished with warnings · {converted}/{pending.Count} converted{renamedNote}";
+                    ? string.Format(Strings.DoneCount, converted)
+                    : string.Format(Strings.FinishedWithWarnings, converted, pending.Count)) + renamedNote;
         }
         finally
         {
@@ -324,7 +323,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void ChooseOutputFolder()
     {
-        if (_dialogs.PickFolder("Choose where to save the Markdown files") is { } folder)
+        if (_dialogs.PickFolder(Strings.ChooseOutputTitle) is { } folder)
             OutputFolder = folder;
     }
 

@@ -1,7 +1,8 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Navigation;
+using MdPipe.Wpf.Resources;
 
 namespace MdPipe.Wpf;
 
@@ -12,7 +13,9 @@ public partial class AboutWindow : Window
         InitializeComponent();
 
         var version = Assembly.GetExecutingAssembly().GetName().Version;
-        VersionText.Text = version is null ? "" : $"Version {version.Major}.{version.Minor}.{version.Build}";
+        VersionText.Text = version is null
+            ? ""
+            : string.Format(Strings.VersionLabel, $"{version.Major}.{version.Minor}.{version.Build}");
     }
 
     private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)

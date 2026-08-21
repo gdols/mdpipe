@@ -1,9 +1,11 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
 using FluentAssertions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
 using MdPipe.Wpf;
+using MdPipe.Wpf.Resources;
 using MdPipe.Wpf.Services;
 using MdPipe.Wpf.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,17 +16,27 @@ namespace MdPipe.Wpf.Tests;
 /// Covers the batch logic the desktop app runs on. Everything that talks to Windows goes through
 /// <see cref="IDialogService"/>, so nothing here can hang on a message box waiting to be dismissed.
 /// </summary>
+[Collection("ui-strings")]
 public sealed class MainViewModelTests : IDisposable
 {
+    // The status messages are localised now, so the assertions below would follow whatever language
+    // the developer's Windows happens to be in. Pin it.
+    private readonly CultureInfo? _previousCulture = Strings.Culture;
+
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "mdpipe-wpf-tests", Guid.NewGuid().ToString("N"));
     private readonly FakeConverter _converter = new();
     private readonly FakeDialogs _dialogs = new();
     private readonly FakeEnvironment _environment = new();
 
-    public MainViewModelTests() => Directory.CreateDirectory(_dir);
+    public MainViewModelTests()
+    {
+        Strings.Culture = new CultureInfo("en");
+        Directory.CreateDirectory(_dir);
+    }
 
     public void Dispose()
     {
+        Strings.Culture = _previousCulture;
         try { Directory.Delete(_dir, recursive: true); } catch { }
     }
 

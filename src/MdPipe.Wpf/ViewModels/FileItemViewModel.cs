@@ -1,5 +1,6 @@
-using System.IO;
+﻿using System.IO;
 using MdPipe.Wpf.Mvvm;
+using MdPipe.Wpf.Resources;
 
 namespace MdPipe.Wpf.ViewModels;
 
@@ -54,10 +55,10 @@ public sealed class FileItemViewModel(string sourcePath) : ObservableObject
 
     public string StatusText => Status switch
     {
-        FileStatus.Pending => "Pending",
-        FileStatus.Converting => "Converting…",
-        FileStatus.Done => "Converted",
-        FileStatus.Error => $"Error: {ErrorMessage}",
+        FileStatus.Pending => Strings.StatePending,
+        FileStatus.Converting => Strings.StateConverting,
+        FileStatus.Done => Strings.StateConverted,
+        FileStatus.Error => string.Format(Strings.StateError, ErrorMessage),
         _ => string.Empty
     };
 }

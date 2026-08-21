@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Input;
+using MdPipe.Wpf.Resources;
 using MdPipe.Wpf.ViewModels;
 
 namespace MdPipe.Wpf;
@@ -38,7 +39,7 @@ public partial class MainWindow : Window
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Choose the files to convert",
+            Title = Strings.ChooseFilesTitle,
             Multiselect = true,
             // Built from what the engine reports rather than typed out: the hand-written version was
             // still offering .doc and .ppt, which stopped converting long ago.
@@ -52,10 +53,10 @@ public partial class MainWindow : Window
     private string BuildFilter()
     {
         var extensions = ViewModel?.Formats.Extensions ?? [];
-        if (extensions.Count == 0) return "All files|*.*";
+        if (extensions.Count == 0) return $"{Strings.AllFiles}|*.*";
 
         var patterns = string.Join(";", extensions.Select(e => "*" + e));
-        return $"Supported documents|{patterns}|All files|*.*";
+        return $"{Strings.SupportedDocuments}|{patterns}|{Strings.AllFiles}|*.*";
     }
 
     private void FormatsLink_Click(object sender, RoutedEventArgs e)

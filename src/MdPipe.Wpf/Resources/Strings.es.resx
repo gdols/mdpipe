@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="WindowTitle" xml:space="preserve"><value>MdPipe - Conversor a Markdown</value></data>
+  <data name="Tagline" xml:space="preserve"><value>Convierte tus documentos a Markdown. Sin complicaciones.</value></data>
+  <data name="Reinstall" xml:space="preserve"><value>Reinstalar</value></data>
+  <data name="DropTitle" xml:space="preserve"><value>Arrastra aquí tus archivos</value></data>
+  <data name="DropSubtitle" xml:space="preserve"><value>o haz clic para elegirlos  ·  PDF, Word, Excel, PowerPoint, HTML, imágenes…</value></data>
+  <data name="NoFilesYet" xml:space="preserve"><value>Todavía no has añadido archivos.</value></data>
+  <data name="TryEveryFile" xml:space="preserve"><value>Intentar con todos los archivos de la carpeta, no solo los formatos conocidos</value></data>
+  <data name="TryEveryFileTip" xml:space="preserve"><value>Útil para archivos con la extensión equivocada o sin extensión. El motor decide por el contenido.</value></data>
+  <data name="WhatCanItConvert" xml:space="preserve"><value>¿Qué puede convertir?</value></data>
+  <data name="SaveTo" xml:space="preserve"><value>Guardar en:</value></data>
+  <data name="Change" xml:space="preserve"><value>Cambiar…</value></data>
+  <data name="ClearList" xml:space="preserve"><value>Limpiar lista</value></data>
+  <data name="OpenFolder" xml:space="preserve"><value>Abrir carpeta</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="ConvertToMarkdown" xml:space="preserve"><value>Convertir a Markdown</value></data>
+  <data name="About" xml:space="preserve"><value>Acerca de</value></data>
+  <data name="NextToEachOriginal" xml:space="preserve"><value>Junto a cada archivo original</value></data>
+  <data name="Starting" xml:space="preserve"><value>Iniciando…</value></data>
+  <data name="Reinstalling" xml:space="preserve"><value>Reinstalando el entorno…</value></data>
+  <data name="ReadyWithVersion" xml:space="preserve"><value>Listo · MarkItDown {0}</value></data>
+  <data name="ConvertingFiles" xml:space="preserve"><value>Convirtiendo archivos…</value></data>
+  <data name="DoneCount" xml:space="preserve"><value>Hecho · {0} archivo(s) convertido(s)</value></data>
+  <data name="CancelledCount" xml:space="preserve"><value>Cancelado · {0} archivo(s) convertido(s) hasta ahora</value></data>
+  <data name="FinishedWithWarnings" xml:space="preserve"><value>Terminado con avisos · {0}/{1} convertido(s)</value></data>
+  <data name="RenamedNote" xml:space="preserve"><value> · {0} renombrado(s) para no sobrescribir</value></data>
+  <data name="SkippedFolderOne" xml:space="preserve"><value>Se omitió 1 carpeta sin permiso de lectura.</value></data>
+  <data name="SkippedFolderMany" xml:space="preserve"><value>Se omitieron {0} carpetas sin permiso de lectura.</value></data>
+  <data name="PythonMissingStatus" xml:space="preserve"><value>Falta Python. Instala Python 3.10 o superior y vuelve a abrir la aplicación.</value></data>
+  <data name="PythonMissingTitle" xml:space="preserve"><value>Falta Python</value></data>
+  <data name="PythonMissingBody" xml:space="preserve"><value>MdPipe necesita Python 3.10 o superior instalado en el sistema.
+
+Descárgalo gratis desde python.org, instálalo y vuelve a abrir MdPipe.</value></data>
+  <data name="SetupUnfinishedStatus" xml:space="preserve"><value>No se pudo terminar de instalar MarkItDown.</value></data>
+  <data name="SetupUnfinishedTitle" xml:space="preserve"><value>La instalación no pudo terminar</value></data>
+  <data name="SetupUnfinishedBody" xml:space="preserve"><value>MdPipe no pudo terminar su instalación inicial.
+
+{0}
+
+El primer arranque necesita internet para descargar de python.org y PyPI. En una red de empresa, un proxy, un cortafuegos, una VPN o el antivirus pueden bloquearlo.</value></data>
+  <data name="PrepareFailedStatus" xml:space="preserve"><value>No se pudo preparar MarkItDown.</value></data>
+  <data name="PrepareFailedTitle" xml:space="preserve"><value>Error al preparar MdPipe</value></data>
+  <data name="SetupFailedStatus" xml:space="preserve"><value>No se pudo terminar la instalación.</value></data>
+  <data name="SetupFailedBody" xml:space="preserve"><value>MdPipe no pudo terminar de instalarse.
+
+{0}</value></data>
+  <data name="UnexpectedErrorBody" xml:space="preserve"><value>Ha ocurrido un error inesperado:
+
+{0}</value></data>
+  <data name="StatePending" xml:space="preserve"><value>En espera</value></data>
+  <data name="StateConverting" xml:space="preserve"><value>Convirtiendo…</value></data>
+  <data name="StateConverted" xml:space="preserve"><value>Convertido</value></data>
+  <data name="StateError" xml:space="preserve"><value>Error: {0}</value></data>
+  <data name="ChooseFilesTitle" xml:space="preserve"><value>Elige los archivos a convertir</value></data>
+  <data name="SupportedDocuments" xml:space="preserve"><value>Documentos compatibles</value></data>
+  <data name="AllFiles" xml:space="preserve"><value>Todos los archivos</value></data>
+  <data name="ChooseOutputTitle" xml:space="preserve"><value>Elige dónde guardar los Markdown</value></data>
+  <data name="AboutTitle" xml:space="preserve"><value>Acerca de MdPipe</value></data>
+  <data name="DevelopedBy" xml:space="preserve"><value>DESARROLLADO POR</value></data>
+  <data name="Web" xml:space="preserve"><value>Web</value></data>
+  <data name="Email" xml:space="preserve"><value>Correo</value></data>
+  <data name="Project" xml:space="preserve"><value>Proyecto</value></data>
+  <data name="Close" xml:space="preserve"><value>Cerrar</value></data>
+  <data name="VersionLabel" xml:space="preserve"><value>Versión {0}</value></data>
+  <data name="Disclaimer" xml:space="preserve"><value>MdPipe es un proyecto independiente y no oficial. No está afiliado a Microsoft ni patrocinado por Microsoft. Usa Microsoft MarkItDown (licencia MIT), que se descarga de PyPI en tiempo de ejecución.</value></data>
+  <data name="FormatsTitle" xml:space="preserve"><value>Qué puede convertir MdPipe</value></data>
+  <data name="FormatsFromEngine" xml:space="preserve"><value>Leído de MarkItDown {0}, el motor instalado en este ordenador.</value></data>
+  <data name="FormatsFromBundle" xml:space="preserve"><value>Los formatos que MdPipe trae de serie. Cuando termine de instalarse, esta lista saldrá directamente del motor de este ordenador.</value></data>
+  <data name="FormatsCount" xml:space="preserve"><value>{0} formatos.</value></data>
+  <data name="FormatsNote" xml:space="preserve"><value>Arrastrar un archivo lo convierte sea cual sea su extensión, así que esta lista solo limita lo que se recoge al soltar una carpeta entera. Marca 'Intentar con todos los archivos' para intentarlo también con el resto y dejar que el motor decida por el contenido.</value></data>
+</root>
