@@ -83,15 +83,15 @@ public static class ConvertCommand
             var outputFolder = ResolveOutputFolder(output, inputs, resolution.Files.Count);
             if (outputFolder is not null) Directory.CreateDirectory(outputFolder);
 
+            // Destinations are worked out up front so the whole batch can go to the worker in one go,
+            // which is what lets a single Python process serve all of them.
             var outputPaths = new OutputPathResolver();
-            var converted = 0;
-            var failed = 0;
+            var destinations = new List<OutputPath?>(resolution.Files.Count);
+            var requests = new List<ConversionRequest>(resolution.Files.Count);
             var renamed = 0;
 
             foreach (var file in resolution.Files)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
                 OutputPath? destination = null;
                 if (!toStdout)
                 {
@@ -103,8 +103,19 @@ public static class ConvertCommand
                     if (destination.Renamed) renamed++;
                 }
 
-                var result = await converter.ConvertAsync(
-                    ConversionRequest.FromFile(file, destination?.FullPath), cancellationToken);
+                destinations.Add(destination);
+                requests.Add(ConversionRequest.FromFile(file, destination?.FullPath));
+            }
+
+            var converted = 0;
+            var failed = 0;
+            var index = 0;
+
+            await foreach (var result in converter.ConvertManyAsync(requests, cancellationToken))
+            {
+                var file = resolution.Files[index];
+                var destination = destinations[index];
+                index++;
 
                 if (!result.Success)
                 {

@@ -1,5 +1,6 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
@@ -80,6 +81,7 @@ public sealed class PythonEnvironmentManager(
         progress?.Report($"Downloading MarkItDown {markItDownVersion} and its converters (the biggest part)...");
         // Keep pip output so proxy, firewall and SSL failures reach the user.
         await RunProcessAsync(target, $"-m pip install \"markitdown[all]=={markItDownVersion}\" --disable-pip-version-check", cancellationToken);
+        EnsureWorkerScript();
         logger.LogInformation("Setup complete");
     }
 
@@ -90,6 +92,35 @@ public sealed class PythonEnvironmentManager(
     }
 
     internal string? GetPythonExecutable() => ReadyPython;
+
+    private const string WorkerResourceName = "MdPipe.Infrastructure.Resources.worker.py";
+    private static string WorkerScript => Path.Combine(Root, "worker.py");
+
+    /// <summary>
+    /// Drops the bundled conversion worker next to the environment and returns its path, rewriting it
+    /// whenever it is missing or stale so an updated MdPipe never talks to an old script.
+    /// </summary>
+    internal string EnsureWorkerScript()
+    {
+        var expected = ReadEmbeddedWorker();
+
+        if (!File.Exists(WorkerScript) || File.ReadAllText(WorkerScript) != expected)
+        {
+            Directory.CreateDirectory(Root);
+            File.WriteAllText(WorkerScript, expected);
+            logger.LogInformation("Wrote the conversion worker to {Path}", WorkerScript);
+        }
+
+        return WorkerScript;
+    }
+
+    private static string ReadEmbeddedWorker()
+    {
+        using var stream = typeof(PythonEnvironmentManager).Assembly.GetManifestResourceStream(WorkerResourceName)
+            ?? throw new PythonEnvironmentException($"Embedded resource '{WorkerResourceName}' is missing from the build.");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
 
     private async Task<string> EnsureInterpreterAsync(IProgress<string>? progress, CancellationToken cancellationToken)
     {

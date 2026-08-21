@@ -235,17 +235,26 @@ public sealed class MainViewModel : ObservableObject
             var converted = 0;
             var renamed = 0;
 
+            // Destinations first: the whole batch goes to the worker at once, which is what lets a
+            // single Python process handle all of them instead of paying the two-second import per file.
+            var requests = new List<ConversionRequest>(pending.Count);
             foreach (var file in pending)
             {
-                file.Status = FileStatus.Converting;
                 file.ErrorMessage = null;
+                var destination = outputPaths.For(file.SourcePath, OutputFolder);
+                if (destination.Renamed) renamed++;
+                requests.Add(ConversionRequest.FromFile(file.SourcePath, destination.FullPath));
+            }
 
-                try
+            var index = 0;
+            if (pending.Count > 0) pending[0].Status = FileStatus.Converting;
+
+            try
+            {
+                await foreach (var result in _converter.ConvertManyAsync(requests, token))
                 {
-                    var destination = outputPaths.For(file.SourcePath, OutputFolder);
-                    if (destination.Renamed) renamed++;
-                    var request = ConversionRequest.FromFile(file.SourcePath, destination.FullPath);
-                    var result = await Task.Run(() => _converter.ConvertAsync(request, token), token);
+                    var file = pending[index];
+                    index++;
 
                     if (result.Success)
                     {
@@ -258,19 +267,29 @@ public sealed class MainViewModel : ObservableObject
                         file.ErrorMessage = result.ErrorMessage;
                         file.Status = FileStatus.Error;
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    file.Status = FileStatus.Pending;
-                    cancelled = true;
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    file.ErrorMessage = ex.Message;
-                    file.Status = FileStatus.Error;
+
+                    if (index < pending.Count) pending[index].Status = FileStatus.Converting;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                cancelled = true;
+            }
+            catch (Exception ex)
+            {
+                // Whatever went wrong belongs to the file that was in flight, not to the whole list.
+                if (index < pending.Count)
+                {
+                    pending[index].ErrorMessage = ex.Message;
+                    pending[index].Status = FileStatus.Error;
+                    index++;
+                }
+            }
+
+            // Anything still marked as converting never got its turn.
+            for (var i = index; i < pending.Count; i++)
+                if (pending[i].Status == FileStatus.Converting)
+                    pending[i].Status = FileStatus.Pending;
 
             var renamedNote = renamed > 0 ? $" · {renamed} renamed to avoid overwriting" : "";
             StatusMessage = cancelled
