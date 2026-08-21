@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/src/">
     <Project Path="src/MdPipe.Cli/MdPipe.Cli.csproj" />
     <Project Path="src/MdPipe.Core/MdPipe.Core.csproj" />
@@ -8,5 +8,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/MdPipe.Core.Tests/MdPipe.Core.Tests.csproj" />
     <Project Path="tests/MdPipe.Infrastructure.Tests/MdPipe.Infrastructure.Tests.csproj" />
+    <Project Path="tests/MdPipe.Wpf.Tests/MdPipe.Wpf.Tests.csproj" />
   </Folder>
 </Solution>

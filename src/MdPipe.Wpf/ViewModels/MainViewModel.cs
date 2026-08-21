@@ -6,6 +6,7 @@ using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
 using MdPipe.Wpf.Mvvm;
+using MdPipe.Wpf.Services;
 
 namespace MdPipe.Wpf.ViewModels;
 
@@ -24,6 +25,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly UserSettings _settings;
     private readonly InputResolver _inputResolver;
     private readonly FormatCatalogProvider _formats;
+    private readonly IDialogService _dialogs;
     private bool _includeEverything;
 
     public MainViewModel(
@@ -31,13 +33,17 @@ public sealed class MainViewModel : ObservableObject
         IMarkItDownConverter converter,
         IPythonEnvironmentManager environmentManager,
         InputResolver inputResolver,
-        FormatCatalogProvider formats)
+        FormatCatalogProvider formats,
+        IDialogService dialogs,
+        UserSettings settings)
     {
         _setupOrchestrator = setupOrchestrator;
         _converter = converter;
         _environmentManager = environmentManager;
         _inputResolver = inputResolver;
         _formats = formats;
+        _dialogs = dialogs;
+        _settings = settings;
 
         Files.CollectionChanged += (_, _) => CommandManagerRefresh();
 
@@ -48,7 +54,6 @@ public sealed class MainViewModel : ObservableObject
         ReinstallCommand = new RelayCommand(async () => await ReinstallAsync(), () => !IsBusy);
         CancelCommand = new RelayCommand(() => _convertCts?.Cancel(), () => IsConverting);
 
-        _settings = UserSettings.Load();
         if (!string.IsNullOrEmpty(_settings.OutputFolder) && Directory.Exists(_settings.OutputFolder))
             _outputFolder = _settings.OutputFolder;
     }
@@ -165,12 +170,9 @@ public sealed class MainViewModel : ObservableObject
         {
             IsReady = false;
             StatusMessage = "Python is missing. Install Python 3.10 or later and reopen the app.";
-            MessageBox.Show(
-                "MdPipe needs Python 3.10 or later installed on the system.\n\n" +
+            _dialogs.ShowMessage("MdPipe needs Python 3.10 or later installed on the system.\n\n" +
                 "Download it for free from python.org, install it, and reopen MdPipe.",
-                "Python missing",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                "Python missing", DialogKind.Warning);
         }
         catch (PythonEnvironmentException ex)
         {
@@ -184,28 +186,24 @@ public sealed class MainViewModel : ObservableObject
             {
                 IsReady = false;
                 StatusMessage = "Couldn't finish setting up MarkItDown.";
-                MessageBox.Show(
-                    "MdPipe couldn't finish its first-time setup.\n\n" + ex.Message + "\n\n" +
+                _dialogs.ShowMessage("MdPipe couldn't finish its first-time setup.\n\n" + ex.Message + "\n\n" +
                     "The first run needs internet to download from python.org and PyPI. On a company " +
                     "network, a proxy, firewall, VPN or antivirus can block it.",
-                    "Setup couldn't finish",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    "Setup couldn't finish", DialogKind.Warning);
             }
         }
         catch (MdPipeException ex)
         {
             IsReady = false;
             StatusMessage = "Couldn't prepare MarkItDown.";
-            MessageBox.Show(ex.Message, "Error preparing MdPipe", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogs.ShowMessage(ex.Message, "Error preparing MdPipe", DialogKind.Error);
         }
         catch (Exception ex)
         {
             IsReady = false;
             StatusMessage = "Couldn't finish setup.";
-            MessageBox.Show(
-                "MdPipe couldn't finish setting up.\n\n" + ex.Message,
-                "Setup couldn't finish", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogs.ShowMessage("MdPipe couldn't finish setting up.\n\n" + ex.Message,
+                "Setup couldn't finish", DialogKind.Error);
         }
         finally
         {
@@ -326,12 +324,8 @@ public sealed class MainViewModel : ObservableObject
 
     private void ChooseOutputFolder()
     {
-        var dialog = new Microsoft.Win32.OpenFolderDialog
-        {
-            Title = "Choose where to save the Markdown files"
-        };
-        if (dialog.ShowDialog() == true)
-            OutputFolder = dialog.FolderName;
+        if (_dialogs.PickFolder("Choose where to save the Markdown files") is { } folder)
+            OutputFolder = folder;
     }
 
     private void OpenOutputFolder()
@@ -341,14 +335,8 @@ public sealed class MainViewModel : ObservableObject
             ? Path.GetDirectoryName(p)
             : OutputFolder;
 
-        if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = folder,
-                UseShellExecute = true
-            });
-        }
+        if (!string.IsNullOrEmpty(folder))
+            _dialogs.OpenFolder(folder);
     }
 
     private static void CommandManagerRefresh() =>
