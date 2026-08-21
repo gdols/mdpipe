@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using MdPipe.Infrastructure.DependencyInjection;
+using MdPipe.Wpf.Services;
 using MdPipe.Wpf.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -25,6 +26,8 @@ public partial class App : Application
             .ConfigureServices(services =>
             {
                 services.AddMdPipeInfrastructure(ManifestUrl);
+                services.AddSingleton<IDialogService, DialogService>();
+                services.AddSingleton(UserSettings.Load());
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<MainWindow>();
             })
