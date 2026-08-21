@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:MdPipe.Wpf.Converters"
         xmlns:vm="clr-namespace:MdPipe.Wpf.ViewModels"
-        Title="MdPipe - Markdown Converter"
+        xmlns:res="clr-namespace:MdPipe.Wpf.Resources"
+        Title="{res:Str WindowTitle}"
         Icon="/Assets/icon.png"
         Height="640" Width="780"
         MinHeight="520" MinWidth="640"
@@ -35,7 +36,7 @@
                 <TextBlock FontSize="30" FontWeight="Bold">
                     <Run Text="Md" Foreground="{StaticResource Accent}" /><Run Text="Pipe" Foreground="{StaticResource TextPrimary}" />
                 </TextBlock>
-                <TextBlock Text="Convert your documents to Markdown. Hassle-free."
+                <TextBlock Text="{res:Str Tagline}"
                            FontSize="14" Foreground="{StaticResource TextMuted}" Margin="0,1,0,0" />
             </StackPanel>
         </StackPanel>
@@ -64,7 +65,7 @@
                         <TextBlock Text="{Binding StatusMessage}" FontSize="14" TextWrapping="Wrap"
                                    Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Button Grid.Column="1" Content="Reinstall" Style="{StaticResource GhostButton}"
+                    <Button Grid.Column="1" Content="{res:Str Reinstall}" Style="{StaticResource GhostButton}"
                             Command="{Binding ReinstallCommand}" Margin="12,0,0,0" VerticalAlignment="Center"
                             Visibility="{Binding ShowReinstall, Converter={StaticResource BoolToVis}}" />
                 </Grid>
@@ -92,9 +93,9 @@
                 </Style>
             </Border.Style>
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="Drag your files here" FontSize="16" FontWeight="SemiBold"
+                <TextBlock Text="{res:Str DropTitle}" FontSize="16" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
-                <TextBlock Text="or click to choose them  ·  PDF, Word, Excel, PowerPoint, HTML, images…"
+                <TextBlock Text="{res:Str DropSubtitle}"
                            FontSize="12.5" HorizontalAlignment="Center"
                            Foreground="{StaticResource TextMuted}" Margin="0,4,0,0" />
             </StackPanel>
@@ -108,18 +109,18 @@
             </Grid.ColumnDefinitions>
             <CheckBox Grid.Column="0" IsChecked="{Binding IncludeEverything}"
                       VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
-                      FontSize="12.5" Content="Try every file in a folder, not just known formats"
-                      ToolTip="Useful for files with a wrong or missing extension. The engine decides by what's inside." />
+                      FontSize="12.5" Content="{res:Str TryEveryFile}"
+                      ToolTip="{res:Str TryEveryFileTip}" />
             <TextBlock Grid.Column="1" FontSize="12.5" VerticalAlignment="Center">
                 <Hyperlink Click="FormatsLink_Click" Foreground="{StaticResource Accent}"
-                           TextDecorations="None">What can it convert?</Hyperlink>
+                           TextDecorations="None"><Run Text="{res:Str WhatCanItConvert}" /></Hyperlink>
             </TextBlock>
         </Grid>
 
         <Border Grid.Row="4" Background="{StaticResource Surface}" CornerRadius="10"
                 BorderBrush="{StaticResource Border}" BorderThickness="1">
             <Grid>
-                <TextBlock Text="No files added yet."
+                <TextBlock Text="{res:Str NoFilesYet}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            Foreground="{StaticResource TextMuted}" FontSize="13">
                     <TextBlock.Style>
@@ -178,11 +179,11 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Save to:" FontSize="13" VerticalAlignment="Center"
+            <TextBlock Grid.Column="0" Text="{res:Str SaveTo}" FontSize="13" VerticalAlignment="Center"
                        Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
             <TextBlock Grid.Column="1" Text="{Binding OutputFolderDisplay}" FontSize="13" VerticalAlignment="Center"
                        Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
-            <Button Grid.Column="2" Content="Change…" Style="{StaticResource GhostButton}"
+            <Button Grid.Column="2" Content="{res:Str Change}" Style="{StaticResource GhostButton}"
                     Command="{Binding ChooseOutputFolderCommand}" />
         </Grid>
 
@@ -193,21 +194,21 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Content="Clear list" Style="{StaticResource GhostButton}"
+            <Button Grid.Column="0" Content="{res:Str ClearList}" Style="{StaticResource GhostButton}"
                     Command="{Binding ClearCommand}" Margin="0,0,10,0" />
-            <Button Grid.Column="1" Content="Open folder" Style="{StaticResource GhostButton}"
+            <Button Grid.Column="1" Content="{res:Str OpenFolder}" Style="{StaticResource GhostButton}"
                     Command="{Binding OpenOutputFolderCommand}" />
-            <Button Grid.Column="2" Content="Cancel" Style="{StaticResource GhostButton}"
+            <Button Grid.Column="2" Content="{res:Str Cancel}" Style="{StaticResource GhostButton}"
                     Command="{Binding CancelCommand}" HorizontalAlignment="Right" Margin="0,0,10,0"
                     Visibility="{Binding IsConverting, Converter={StaticResource BoolToVis}}" />
-            <Button Grid.Column="3" Content="Convert to Markdown" Style="{StaticResource PrimaryButton}"
+            <Button Grid.Column="3" Content="{res:Str ConvertToMarkdown}" Style="{StaticResource PrimaryButton}"
                     Command="{Binding ConvertCommand}" />
         </Grid>
 
         <TextBlock Grid.Row="7" HorizontalAlignment="Center" Margin="0,16,0,0"
                    FontSize="12" Foreground="{StaticResource TextMuted}">
             <Hyperlink Click="HelpButton_Click" Foreground="{StaticResource Accent}"
-                       TextDecorations="None">About</Hyperlink>
+                       TextDecorations="None"><Run Text="{res:Str About}" /></Hyperlink>
         </TextBlock>
     </Grid>
 </Window>

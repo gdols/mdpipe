@@ -21,6 +21,15 @@
     <Resource Include="Assets\icon.png" />
   </ItemGroup>
 
+  <!-- The interface follows the machine's language: .NET picks the satellite assembly from
+       CurrentUICulture, so a Windows in Spanish gets Spanish and everything else gets English.
+       Strings.cs is generated from the .resx and committed, because the temporary project WPF uses
+       to compile XAML does not see files generated during the build. -->
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx" />
+    <EmbeddedResource Update="Resources\Strings.es.resx" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
   </ItemGroup>
