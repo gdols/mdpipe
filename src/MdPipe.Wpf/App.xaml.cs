@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using MdPipe.Infrastructure.DependencyInjection;
 using MdPipe.Wpf.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,6 +47,12 @@ public partial class App : Application
         var viewModel = _host.Services.GetRequiredService<MainViewModel>();
         window.DataContext = viewModel;
         window.Show();
+
+        // Files dropped on the executable, or opened with it, arrive as arguments. They have to go in
+        // before the environment check starts, because that marks the view model busy and AddFiles
+        // refuses to touch the list while a batch could be running.
+        if (e.Args.Length > 0)
+            viewModel.AddFiles(e.Args);
 
         await viewModel.InitializeAsync();
     }
