@@ -38,15 +38,51 @@ Windows SmartScreen may ask you to confirm that you want to run it.
 I built MdPipe so I could give someone a document converter without first asking
 them to install Python or work from a terminal.
 
+## What it can convert
+
+| | |
+|---|---|
+| **Documents** | `.pdf` `.docx` `.pptx` `.epub` |
+| **Spreadsheets** | `.xlsx` `.xls` `.csv` |
+| **Web and data** | `.html` `.htm` `.xml` `.rss` `.atom` `.json` `.jsonl` `.ipynb` |
+| **Text** | `.txt` `.text` `.markdown` `.md` |
+| **Images** | `.png` `.jpg` `.jpeg` |
+| **Audio** | `.mp3` `.wav` `.m4a` `.mp4` |
+| **Other** | `.msg` (Outlook mail) `.zip` (converts what is inside) |
+
+That list is not written by hand. MdPipe asks the MarkItDown installed on your machine what
+its converters accept, so the app always tells you the truth about your own computer rather
+than repeating someone else's documentation. The same list is a click away in the app:
+
+<p align="center">
+  <img src="assets/screenshots/app-formats.png" alt="The formats window listing what the installed engine can read" width="480">
+</p>
+
+Three details worth knowing:
+
+- **Naming a file directly converts it whatever its extension.** The list above only decides
+  what gets picked up when you drop a whole folder. If you have files with a wrong or missing
+  extension, tick *Try every file* (or pass `--all-files`) and the engine will decide by what
+  is inside them.
+- **Markdown files are skipped when scanning a folder**, on purpose: the output would land on
+  top of the input and rewrite your own notes.
+- Word and PowerPoint files from the 1990s (`.doc`, `.ppt`) have no converter anywhere in this
+  chain. MdPipe says so and tells you to save them as `.docx` or `.pptx` first.
+
+## The app speaks your language
+
+It follows whatever language Windows is set to: Spanish on a Spanish machine, English
+everywhere else. Nothing to configure.
+
+<p align="center">
+  <img src="assets/screenshots/app-spanish.png" alt="The same window on a Spanish Windows" width="640">
+</p>
+
 ## What it does
 
 - Converts several files in one batch using drag and drop. Folders work too,
   subfolders included, and a whole batch shares one engine process instead of
   starting a new one per file.
-- Knows what it can read by asking the engine installed on your machine, so the
-  list in the app is never a stale copy of someone else's documentation.
-- Speaks the language Windows is set to: Spanish on a Spanish machine, English
-  everywhere else.
 - Opens files dropped straight onto the executable, or sent to it with
   "Open with".
 - Saves the Markdown beside the original or in a chosen folder, and remembers
