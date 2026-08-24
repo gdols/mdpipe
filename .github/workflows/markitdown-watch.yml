@@ -1,0 +1,67 @@
+﻿name: Watch MarkItDown
+
+# MdPipe pins MarkItDown to a validated set, which is the right call, but nothing was watching
+# for new releases. The manifest stayed current because somebody remembered to look, and the
+# list of readable formats had already drifted once when nobody did.
+#
+# This looks every Monday, and when there is a version MdPipe has not validated, it installs it
+# next to the current one, converts the sample documents with both and opens an issue with the
+# differences. It never changes the manifest: accepting a version stays a decision, it just
+# stops being one that can be forgotten.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      pretend_current:
+        description: 'Pretend this is the newest validated version, to see the report on demand'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Look for a version MdPipe has not validated
+        id: check
+        run: |
+          python .github/scripts/check_markitdown.py \
+            ${{ inputs.pretend_current && format('--pretend-current {0}', inputs.pretend_current) || '' }}
+
+      - name: Put the report in the run summary
+        if: steps.check.outputs.found == 'true'
+        run: cat watch-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open an issue, unless one is already open for this version
+        if: steps.check.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          title="MarkItDown $VERSION is out"
+
+          # Searching by title rather than by label, so a rerun on Monday does not file a second
+          # copy of an issue nobody has got to yet.
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+
+          if [ -n "$existing" ]; then
+            echo "Already tracked in #$existing."
+            exit 0
+          fi
+
+          # Created here rather than assumed, so the workflow does not depend on someone having
+          # set the label up by hand months earlier.
+          gh label create dependencies --color 0366D6 --description "Keeping up with something MdPipe depends on" 2>/dev/null || true
+
+          gh issue create --title "$title" --body-file watch-report.md --label dependencies
