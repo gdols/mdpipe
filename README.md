@@ -31,6 +31,9 @@ downloads a private Python environment and MarkItDown into `%APPDATA%\mdpipe`;
 later conversions work offline. Because the executable is not code-signed yet,
 Windows SmartScreen may ask you to confirm that you want to run it.
 
+MdPipe tells you when a newer version is out. It never replaces itself, it just
+says so and links to the release.
+
 <p align="center">
   <img src="assets/screenshots/app-main.png" alt="MdPipe desktop app" width="720">
 </p>
