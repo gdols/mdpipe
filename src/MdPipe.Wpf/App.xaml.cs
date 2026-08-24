@@ -51,13 +51,15 @@ public partial class App : Application
         window.DataContext = viewModel;
         window.Show();
 
-        // Files dropped on the executable, or opened with it, arrive as arguments. They have to go in
-        // before the environment check starts, because that marks the view model busy and AddFiles
-        // refuses to touch the list while a batch could be running.
-        if (e.Args.Length > 0)
-            viewModel.AddFiles(e.Args);
+        // Files dropped on the executable, or opened with it, arrive as arguments. Both jobs start
+        // together on purpose: preparing the environment can spend minutes downloading Python on a
+        // first run, and there is no reason to stare at an empty list while it does.
+        var initialization = viewModel.InitializeAsync();
 
-        await viewModel.InitializeAsync();
+        if (e.Args.Length > 0)
+            await viewModel.AddFilesAsync(e.Args);
+
+        await initialization;
     }
 
     protected override void OnExit(ExitEventArgs e)

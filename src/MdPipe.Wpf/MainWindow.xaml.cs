@@ -28,14 +28,14 @@ public partial class MainWindow : Window
         DropZone.Opacity = 0.85;
     }
 
-    private void DropZone_Drop(object sender, DragEventArgs e)
+    private async void DropZone_Drop(object sender, DragEventArgs e)
     {
         DropZone.Opacity = 0.85;
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] paths)
-            ViewModel?.AddFiles(paths);
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] paths && ViewModel is { } viewModel)
+            await viewModel.AddFilesAsync(paths);
     }
 
-    private void DropZone_Click(object sender, MouseButtonEventArgs e)
+    private async void DropZone_Click(object sender, MouseButtonEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
@@ -46,8 +46,8 @@ public partial class MainWindow : Window
             Filter = BuildFilter()
         };
 
-        if (dialog.ShowDialog() == true)
-            ViewModel?.AddFiles(dialog.FileNames);
+        if (dialog.ShowDialog() == true && ViewModel is { } viewModel)
+            await viewModel.AddFilesAsync(dialog.FileNames);
     }
 
     private string BuildFilter()

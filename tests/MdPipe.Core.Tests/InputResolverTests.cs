@@ -253,4 +253,94 @@ public sealed class InputResolverTests : IDisposable
 
         result.Unreadable.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Resolve_WhenCancelled_ReturnsWhatItFoundAndSaysSo()
+    {
+        // Scanning a network share can take a while, so cancelling has to be an option. What was
+        // already found stays: the user cancelled the waiting, not the work.
+        CreateFile("docs/a.pdf");
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")], cancellationToken: cts.Token);
+
+        result.Cancelled.Should().BeTrue();
+        result.Files.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Resolve_WhenCancelled_DoesNotBlameTheInput()
+    {
+        // A folder that was never walked matched nothing, but calling it "not found" would send the
+        // user looking for a typo that isn't there.
+        CreateFile("docs/a.pdf");
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")], cancellationToken: cts.Token);
+
+        result.NotFound.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Resolve_ReportsHowManyFilesItFound()
+    {
+        CreateFile("docs/a.pdf");
+        CreateFile("docs/b.docx");
+        var reports = new List<int>();
+
+        // Not Progress<T>: that one posts to a synchronisation context, so in a test the callback
+        // can still be in flight when the assertion runs.
+        var result = _sut.Resolve([Path.Combine(_root, "docs")], progress: new Recorder(reports));
+
+        result.Files.Should().HaveCount(2);
+        reports.Should().NotBeEmpty();
+        reports[^1].Should().Be(2);
+    }
+
+    [Fact]
+    public void Resolve_UnderNormalUse_IsNotMarkedCancelled()
+    {
+        CreateFile("docs/a.pdf");
+
+        var result = _sut.Resolve([Path.Combine(_root, "docs")]);
+
+        result.Cancelled.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Resolve_CancelledMidWalk_StopsEarlyAndKeepsWhatItHad()
+    {
+        // The case the desktop app actually hits: a tree big enough that the user gives up waiting.
+        // 5 files across 120 folders, and progress arrives in batches of 200, so the cancellation
+        // lands while there is still plenty of tree left.
+        for (var dir = 0; dir < 120; dir++)
+            for (var file = 0; file < 5; file++)
+                CreateFile($"big/{dir}/f{file}.pdf");
+
+        using var cts = new CancellationTokenSource();
+        var progress = new Recorder([]);
+        progress.OnReport = _ => cts.Cancel();
+
+        var result = _sut.Resolve(
+            [Path.Combine(_root, "big")], recursive: true, progress: progress, cancellationToken: cts.Token);
+
+        result.Cancelled.Should().BeTrue();
+        result.Files.Should().NotBeEmpty("whatever was already found is still worth keeping");
+        result.Files.Should().HaveCountLessThan(600, "the walk should have stopped instead of finishing");
+    }
+
+    /// <summary>Records progress on the calling thread, so the assertions see it.</summary>
+    private sealed class Recorder(List<int> reports) : IProgress<int>
+    {
+        /// <summary>Lets a test react to progress, which is the only way to cancel mid-walk on purpose.</summary>
+        public Action<int>? OnReport { get; set; }
+
+        public void Report(int value)
+        {
+            reports.Add(value);
+            OnReport?.Invoke(value);
+        }
+    }
 }
