@@ -1,4 +1,4 @@
-## .NET
+﻿## .NET
 bin/
 obj/
 *.user
@@ -27,3 +27,8 @@ Thumbs.db
 ## Editor
 .idea/
 *.swp
+
+# Scratch from .github/scripts/check_markitdown.py, which builds a virtual environment per
+# MarkItDown version to compare their output.
+.watch/
+watch-report.md
