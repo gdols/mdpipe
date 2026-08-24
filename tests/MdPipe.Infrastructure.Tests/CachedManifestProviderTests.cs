@@ -1,4 +1,5 @@
-using FluentAssertions;
+﻿using FluentAssertions;
+using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Infrastructure.Manifest;
@@ -58,6 +59,46 @@ public class CachedManifestProviderTests : IDisposable
         var act = () => CreateSut().GetManifestAsync();
 
         await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task GetManifestAsync_WhenTheCacheIsStaleAndTheRemoteIsDown_UsesTheStaleCache()
+    {
+        // A day-old answer beats the copy baked into the build, which can be several versions behind.
+        _inner.GetManifestAsync(Arg.Any<CancellationToken>()).Returns(SampleManifest());
+        await CreateSut().GetManifestAsync();
+        File.SetLastWriteTimeUtc(_cachePath, DateTime.UtcNow.AddDays(-3));
+
+        _inner.GetManifestAsync(Arg.Any<CancellationToken>())
+            .Returns<CompatibilityManifest>(_ => throw new ManifestException("network is down"));
+
+        var result = await CreateSut().GetManifestAsync();
+
+        result.StableVersion.Should().Be("0.1.1");
+    }
+
+    [Fact]
+    public async Task GetManifestAsync_WhenTheCacheIsStaleAndTheRemoteAnswers_PrefersTheRemote()
+    {
+        _inner.GetManifestAsync(Arg.Any<CancellationToken>()).Returns(SampleManifest());
+        await CreateSut().GetManifestAsync();
+        File.SetLastWriteTimeUtc(_cachePath, DateTime.UtcNow.AddDays(-3));
+
+        var newer = SampleManifest();
+        newer = new CompatibilityManifest
+        {
+            SchemaVersion = newer.SchemaVersion,
+            StableVersion = "0.1.9",
+            MinimumVersion = newer.MinimumVersion,
+            CompatibleVersions = newer.CompatibleVersions,
+            UpdatedAt = newer.UpdatedAt,
+            Notes = newer.Notes
+        };
+        _inner.GetManifestAsync(Arg.Any<CancellationToken>()).Returns(newer);
+
+        var result = await CreateSut().GetManifestAsync();
+
+        result.StableVersion.Should().Be("0.1.9");
     }
 
     public void Dispose()
