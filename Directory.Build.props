@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!--
     One version for the whole product. It used to live separately in MdPipe.Wpf.csproj and
@@ -7,7 +7,7 @@
     app.latestVersion in manifest/markitdown-compat.json all say the same thing.
   -->
   <PropertyGroup>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
   </PropertyGroup>
 
 </Project>

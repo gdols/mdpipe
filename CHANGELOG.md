@@ -1,11 +1,11 @@
-# Changelog
+﻿# Changelog
 
 What changed in each release, in plain terms. The one-line summary that MdPipe itself shows
 when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
-## Unreleased
+## 0.5.0
 
 - **Dropping a folder no longer freezes the window.** The scan used to walk the whole tree on
   the interface thread: `Documents` took 4.6 seconds on the machine this was measured on, a
