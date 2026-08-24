@@ -110,6 +110,18 @@ public static class Strings
     /// <summary>Search stopped. {0} files were added.</summary>
     public static string ScanCancelled => Get("ScanCancelled");
 
+    /// <summary>MdPipe {0} is available. You are on {1}.</summary>
+    public static string UpdateAvailable => Get("UpdateAvailable");
+
+    /// <summary>MdPipe {0} is available and your version, {1}, has a known problem.</summary>
+    public static string UpdateCritical => Get("UpdateCritical");
+
+    /// <summary>Get it</summary>
+    public static string UpdateGetIt => Get("UpdateGetIt");
+
+    /// <summary>Hide this until next time</summary>
+    public static string UpdateDismiss => Get("UpdateDismiss");
+
     /// <summary>Skipped 1 folder you do not have permission to read.</summary>
     public static string SkippedFolderOne => Get("SkippedFolderOne");
 

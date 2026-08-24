@@ -31,7 +31,11 @@ public sealed class MainViewModel : ObservableObject
     private readonly InputResolver _inputResolver;
     private readonly FormatCatalogProvider _formats;
     private readonly IDialogService _dialogs;
+    private readonly AppUpdateService _updates;
+    private readonly string? _runningVersion;
     private bool _includeEverything;
+    private AppUpdate? _update;
+    private bool _updateDismissed;
 
     public MainViewModel(
         SetupOrchestrator setupOrchestrator,
@@ -40,7 +44,9 @@ public sealed class MainViewModel : ObservableObject
         InputResolver inputResolver,
         FormatCatalogProvider formats,
         IDialogService dialogs,
-        UserSettings settings)
+        AppUpdateService updates,
+        UserSettings settings,
+        string? runningVersion = null)
     {
         _setupOrchestrator = setupOrchestrator;
         _converter = converter;
@@ -48,7 +54,9 @@ public sealed class MainViewModel : ObservableObject
         _inputResolver = inputResolver;
         _formats = formats;
         _dialogs = dialogs;
+        _updates = updates;
         _settings = settings;
+        _runningVersion = runningVersion;
 
         Files.CollectionChanged += (_, _) => CommandManagerRefresh();
 
@@ -65,6 +73,13 @@ public sealed class MainViewModel : ObservableObject
                 _scanCts?.Cancel();
             },
             () => CanCancel);
+        DismissUpdateCommand = new RelayCommand(() =>
+        {
+            // Only for this session. Nagging every launch is rude; forgetting entirely means the
+            // people this feature exists for never hear about the fix again.
+            _updateDismissed = true;
+            OnPropertyChanged(nameof(HasUpdate));
+        });
 
         if (!string.IsNullOrEmpty(_settings.OutputFolder) && Directory.Exists(_settings.OutputFolder))
             _outputFolder = _settings.OutputFolder;
@@ -78,6 +93,20 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ChooseOutputFolderCommand { get; }
     public RelayCommand ReinstallCommand { get; }
     public RelayCommand CancelCommand { get; }
+    public RelayCommand DismissUpdateCommand { get; }
+
+    /// <summary>
+    /// The newer release the manifest named, if there is one and the user hasn't waved it away.
+    /// </summary>
+    public AppUpdate? Update => _updateDismissed ? null : _update;
+
+    public bool HasUpdate => Update is not null;
+
+    public string UpdateMessage => Update is not { } update
+        ? string.Empty
+        : string.Format(
+            update.Critical ? Strings.UpdateCritical : Strings.UpdateAvailable,
+            update.Version, _runningVersion);
 
     public bool IsConverting
     {
@@ -199,6 +228,13 @@ public sealed class MainViewModel : ObservableObject
 
             IsReady = true;
             StatusMessage = string.Format(Strings.ReadyWithVersion, result.Version);
+
+            // The manifest is already fetched, cached and falls back on its own, so learning whether
+            // a newer MdPipe exists costs nothing extra and works the same when offline.
+            _update = _updates.CheckFor(result.Manifest, _runningVersion);
+            OnPropertyChanged(nameof(Update));
+            OnPropertyChanged(nameof(HasUpdate));
+            OnPropertyChanged(nameof(UpdateMessage));
         }
         catch (PythonNotFoundException)
         {

@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Reflection;
 using FluentAssertions;
 using MdPipe.Wpf.Resources;
 
@@ -42,6 +43,47 @@ public sealed class StringsTests : IDisposable
             .ToList();
 
         untranslated.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void EveryAccessorOnStringsResolvesToARealResource()
+    {
+        // Strings.cs is written by hand and committed, because the temporary project WPF uses to
+        // compile XAML cannot see sources generated during the build. That makes it possible to add
+        // an accessor whose key does not exist, and the lookup falls back to returning the key
+        // itself, so the window shows "UpdateGetIt" instead of "Get it" and nothing fails.
+        // Asking the resource manager by name rather than comparing the text, because some labels
+        // legitimately read the same as their key.
+        var english = new CultureInfo("en");
+
+        var broken = typeof(Strings)
+            .GetProperties(BindingFlags.Public | BindingFlags.Static)
+            .Where(p => p.PropertyType == typeof(string))
+            .Select(p => p.Name)
+            .Where(name => Strings.ResourceManager.GetString(name, english) is null)
+            .ToList();
+
+        broken.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void EveryResourceHasAnAccessor()
+    {
+        // The other direction: a key added to the .resx and never added to Strings.cs is a string
+        // nothing can reach.
+        var accessors = typeof(Strings)
+            .GetProperties(BindingFlags.Public | BindingFlags.Static)
+            .Select(p => p.Name)
+            .ToHashSet();
+
+        var unreachable = Strings.ResourceManager
+            .GetResourceSet(new CultureInfo("en"), true, true)!
+            .Cast<System.Collections.DictionaryEntry>()
+            .Select(e => (string)e.Key)
+            .Where(key => !accessors.Contains(key))
+            .ToList();
+
+        unreachable.Should().BeEmpty();
     }
 
     [Fact]

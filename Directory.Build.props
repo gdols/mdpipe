@@ -1,0 +1,13 @@
+<Project>
+
+  <!--
+    One version for the whole product. It used to live separately in MdPipe.Wpf.csproj and
+    MdPipe.Cli.csproj, with the git tag as a third copy and nothing checking that the three
+    agreed. The release workflow now refuses to build unless the tag, this number and
+    app.latestVersion in manifest/markitdown-compat.json all say the same thing.
+  -->
+  <PropertyGroup>
+    <Version>0.4.0</Version>
+  </PropertyGroup>
+
+</Project>

@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMdPipeInfrastructure(this IServiceCollection services, string manifestUrl)
     {
         services.AddSingleton<VersionGateService>();
+        services.AddSingleton<AppUpdateService>();
         services.AddSingleton<FormatCatalogProvider>();
         services.AddSingleton<InputResolver>();
         services.AddSingleton<SetupOrchestrator>();

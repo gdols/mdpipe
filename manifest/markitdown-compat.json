@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "stableVersion": "0.1.7",
   "minimumVersion": "0.1.5",
   "compatibleVersions": [
@@ -8,5 +8,11 @@
     "0.1.7"
   ],
   "updatedAt": "2026-08-05",
-  "notes": "0.1.7 validated on real PDF, DOCX and XLSX files: output identical to 0.1.6, plus upstream fixes for PPTX charts, PPTX SVG images and Word equations."
+  "notes": "0.1.7 validated on real PDF, DOCX and XLSX files: output identical to 0.1.6, plus upstream fixes for PPTX charts, PPTX SVG images and Word equations.",
+  "app": {
+    "latestVersion": "0.4.0",
+    "releaseUrl": "https://github.com/gdols/MdPipe/releases/latest",
+    "criticalBelow": "",
+    "notes": ""
+  }
 }

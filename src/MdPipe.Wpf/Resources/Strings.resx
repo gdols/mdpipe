@@ -61,6 +61,10 @@
   <data name="Scanning" xml:space="preserve"><value>Looking through folders...</value></data>
   <data name="ScanningFound" xml:space="preserve"><value>Looking through folders... {0} files found</value></data>
   <data name="ScanCancelled" xml:space="preserve"><value>Search stopped. {0} files were added.</value></data>
+  <data name="UpdateAvailable" xml:space="preserve"><value>MdPipe {0} is available. You are on {1}.</value></data>
+  <data name="UpdateCritical" xml:space="preserve"><value>MdPipe {0} is available and your version, {1}, has a known problem.</value></data>
+  <data name="UpdateGetIt" xml:space="preserve"><value>Get it</value></data>
+  <data name="UpdateDismiss" xml:space="preserve"><value>Hide this until next time</value></data>
   <data name="SkippedFolderOne" xml:space="preserve"><value>Skipped 1 folder you do not have permission to read.</value></data>
   <data name="SkippedFolderMany" xml:space="preserve"><value>Skipped {0} folders you do not have permission to read.</value></data>
   <data name="PythonMissingStatus" xml:space="preserve"><value>Python is missing. Install Python 3.10 or later and reopen the app.</value></data>
