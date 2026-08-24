@@ -137,6 +137,28 @@ public class SetupOrchestratorTests
     }
 
     [Fact]
+    public async Task RunAsync_HandsOverTheVersionItAlreadyLookedUp()
+    {
+        // Looking it up costs an interpreter start. Doing it twice on every launch, to get the same
+        // answer, was most of the wait before the window said "Ready".
+        _environment.Info = Ready("0.1.7");
+
+        await BuildSut(BuildManifest("0.1.7", "0.1.7")).RunAsync();
+
+        _environment.FormatCatalogVersion.Should().Be("0.1.7");
+    }
+
+    [Fact]
+    public async Task RunAsync_AfterInstalling_HandsOverTheVersionItInstalled()
+    {
+        _environment.Info = new PythonEnvironmentInfo { IsReady = false, MissingReason = "not set up" };
+
+        await BuildSut(BuildManifest("0.1.7", "0.1.7")).RunAsync();
+
+        _environment.FormatCatalogVersion.Should().Be("0.1.7");
+    }
+
+    [Fact]
     public async Task RunAsync_ReportsProgressAlongTheWay()
     {
         _environment.Info = Ready("0.1.6");
@@ -180,9 +202,13 @@ public class SetupOrchestratorTests
 
         public int FormatCatalogChecks { get; private set; }
 
-        public Task EnsureFormatCatalogAsync(CancellationToken cancellationToken = default)
+        /// <summary>The version the orchestrator handed over, or null if it made this look it up.</summary>
+        public string? FormatCatalogVersion { get; private set; }
+
+        public Task EnsureFormatCatalogAsync(string? installedVersion = null, CancellationToken cancellationToken = default)
         {
             FormatCatalogChecks++;
+            FormatCatalogVersion = installedVersion;
             return Task.CompletedTask;
         }
     }

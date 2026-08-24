@@ -286,7 +286,8 @@ public sealed class MainViewModelTests : IDisposable
         public Task<string?> GetInstalledVersionAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<string?>("0.1.7");
 
-        public Task EnsureFormatCatalogAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task EnsureFormatCatalogAsync(string? installedVersion = null, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class FakeManifest : IManifestProvider

@@ -34,7 +34,8 @@ public sealed class SetupOrchestrator(
             {
                 logger.LogInformation("MarkItDown {Version} is already installed and compatible. Nothing to do.", envInfo.InstalledMarkItDownVersion);
                 Report(progress, $"MarkItDown {envInfo.InstalledMarkItDownVersion} is ready.");
-                await environmentManager.EnsureFormatCatalogAsync(cancellationToken);
+                // The version is already in hand; asking again would start another interpreter.
+                await environmentManager.EnsureFormatCatalogAsync(envInfo.InstalledMarkItDownVersion, cancellationToken);
                 return SetupResult.AlreadyUpToDate(envInfo.InstalledMarkItDownVersion);
             }
 
@@ -53,7 +54,7 @@ public sealed class SetupOrchestrator(
         Report(progress, $"Installing MarkItDown {targetVersion} (this may take a minute the first time)...");
         await environmentManager.SetupAsync(targetVersion, forceReinstall, progress, cancellationToken);
         Report(progress, $"MarkItDown {targetVersion} installed.");
-        await environmentManager.EnsureFormatCatalogAsync(cancellationToken);
+        await environmentManager.EnsureFormatCatalogAsync(targetVersion, cancellationToken);
 
         return SetupResult.Installed(targetVersion);
     }
