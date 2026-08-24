@@ -49,16 +49,28 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
 
+      # Published alongside the executable so a copy of MdPipe updating itself has something to
+      # check the download against. Without it the updater refuses and sends the user to the
+      # browser instead, which is the safe direction to fail in but a worse experience.
+      - name: Write down the checksum
+        shell: pwsh
+        run: |
+          $built = "src/MdPipe.Wpf/bin/Release/net10.0-windows/win-x64/publish/MdPipe.exe"
+          $hash = (Get-FileHash $built -Algorithm SHA256).Hash
+          "$hash  MdPipe.exe" | Out-File "$built.sha256" -Encoding ascii -NoNewline
+          "SHA256: $hash"
+
       - name: Attach the exe to the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $exe = "src/MdPipe.Wpf/bin/Release/net10.0-windows/win-x64/publish/MdPipe.exe#MdPipe.exe"
+          $dir = "src/MdPipe.Wpf/bin/Release/net10.0-windows/win-x64/publish"
+          $assets = @("$dir/MdPipe.exe#MdPipe.exe", "$dir/MdPipe.exe.sha256#MdPipe.exe.sha256")
           gh release view ${{ github.ref_name }} 2>$null
           if ($LASTEXITCODE -eq 0) {
             # The release was created by hand; just make sure it carries the freshly built exe.
-            gh release upload ${{ github.ref_name }} $exe --clobber
+            gh release upload ${{ github.ref_name }} $assets --clobber
           } else {
-            gh release create ${{ github.ref_name }} --draft --title "MdPipe ${{ github.ref_name }}" --generate-notes $exe
+            gh release create ${{ github.ref_name }} --draft --title "MdPipe ${{ github.ref_name }}" --generate-notes $assets
           }
 

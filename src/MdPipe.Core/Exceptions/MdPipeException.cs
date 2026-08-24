@@ -1,4 +1,4 @@
-namespace MdPipe.Core.Exceptions;
+﻿namespace MdPipe.Core.Exceptions;
 
 public class MdPipeException(string message, Exception? inner = null)
     : Exception(message, inner);
@@ -14,6 +14,9 @@ public class PythonEnvironmentException(string message, Exception? inner = null)
 
 public class PythonNotFoundException(string message, Exception? inner = null)
     : PythonEnvironmentException(message, inner);
+
+public class AppUpdateException(string message, Exception? inner = null)
+    : MdPipeException(message, inner);
 
 public class VersionGateException(string message, string installedVersion, string stableVersion)
     : MdPipeException(message)

@@ -49,6 +49,7 @@ The manifest looks like this:
   "app": {
     "latestVersion": "0.5.0",
     "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.5.0",
+    "downloadUrl": "https://github.com/gdols/MdPipe/releases/download/v0.5.0/MdPipe.exe",
     "criticalBelow": "",
     "notes": ""
   }
@@ -79,9 +80,33 @@ wording rather than a polite "an update is available". Leave it empty when no re
 that bad. `notes` is the one sentence the notice shows, so write it for the person reading
 it, not as a commit list.
 
-Nothing downloads or replaces anything. The executable is portable, it may be running from a
-memory stick or a folder it cannot write to, and an unsigned binary that rewrites itself is
-exactly the shape antivirus software looks for. The link opens the release page.
+`downloadUrl` is the executable at its **versioned** address, never a "latest" one, which would
+start pointing somewhere else the moment the next release went out and leave the published
+checksum describing a different file.
+
+#### Updating in place
+
+If the person says yes, MdPipe replaces itself. It asks first, every time, and it checks its
+work:
+
+1. It fetches `downloadUrl` + `.sha256`, published beside the executable by the release
+   workflow. **No checksum means no update.** Running something nobody verified is worse than
+   sending the user to the browser, which at least brings SmartScreen along.
+2. It downloads the executable and hashes it. A mismatch stops everything, with the running copy
+   untouched.
+3. Only then does anything move: the running executable is renamed to `MdPipe.exe.old`, the new
+   one takes its place, and MdPipe restarts into it. If that second step fails, the old one goes
+   back, because the one genuinely unrecoverable outcome is leaving no executable at all.
+4. Windows will not let a running executable be deleted, only renamed, so `MdPipe.exe.old` is
+   swept up on the next launch.
+
+Where it cannot write to its own folder, which is a portable executable's normal condition on
+read-only media or under Program Files, it does not offer any of this. It checks before
+downloading anything and offers the release page instead.
+
+The checksum protects against a truncated or corrupted download. It is not a signature, and it
+does not pretend to be: it comes from the same place as the executable. Signing would need a
+certificate.
 
 **Older builds are unaffected.** The serializer does not reject unknown fields, so every copy
 already downloaded goes on reading the manifest as before. This was checked by running the
@@ -175,9 +200,11 @@ The version lives in exactly one place, `Directory.Build.props`, which both the 
 and the CLI inherit. Releasing means:
 
 1. Bump `<Version>` in `Directory.Build.props`.
-2. Set `app.latestVersion` in the manifest to the same number, with a `releaseUrl` pointing at
-   the tag and a `notes` line saying what changed. Write that line for the person who will read
-   it in the app, and put the same thing at the top of `CHANGELOG.md`.
+2. Set `app.latestVersion` in the manifest to the same number, with `releaseUrl` pointing at the
+   tag, `downloadUrl` at that tag's `MdPipe.exe`, and a `notes` line saying what changed. Write
+   that line for the person who will read it in the app, and put the same thing at the top of
+   `CHANGELOG.md`. Getting `downloadUrl` wrong is not dangerous: the checksum will not match, the
+   update will refuse, and the user gets sent to the browser.
 3. Merge, tag `vX.Y.Z`, push the tag.
 4. The workflow builds the executable and attaches it to a **draft** release. Write the notes
    and publish it.

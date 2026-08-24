@@ -46,6 +46,7 @@ public partial class App : Application
                     sp.GetRequiredService<FormatCatalogProvider>(),
                     sp.GetRequiredService<IDialogService>(),
                     sp.GetRequiredService<AppUpdateService>(),
+                    sp.GetRequiredService<IAppUpdateInstaller>(),
                     sp.GetRequiredService<UserSettings>(),
                     RunningVersion));
                 services.AddSingleton<MainWindow>();
@@ -64,6 +65,10 @@ public partial class App : Application
                 "MdPipe", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
+
+        // Windows will not delete a running executable, so the version replaced by the last update
+        // is still sitting next to this one. Now is the first moment it can go.
+        _host.Services.GetRequiredService<IAppUpdateInstaller>().CleanUpPreviousUpdate();
 
         var window = _host.Services.GetRequiredService<MainWindow>();
         var viewModel = _host.Services.GetRequiredService<MainViewModel>();

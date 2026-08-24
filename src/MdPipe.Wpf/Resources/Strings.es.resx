@@ -63,6 +63,19 @@
   <data name="ScanCancelled" xml:space="preserve"><value>Búsqueda detenida. Se añadieron {0} archivos.</value></data>
   <data name="UpdateAvailable" xml:space="preserve"><value>Ya está disponible MdPipe {0}. Tú tienes la {1}.</value></data>
   <data name="UpdateCritical" xml:space="preserve"><value>Ya está disponible MdPipe {0}, y tu versión, la {1}, tiene un fallo conocido.</value></data>
+  <data name="UpdateInstall" xml:space="preserve"><value>Actualizar ahora</value></data>
+  <data name="UpdateConfirmTitle" xml:space="preserve"><value>Actualizar MdPipe</value></data>
+  <data name="UpdateConfirmBody" xml:space="preserve"><value>MdPipe va a descargar la versión {0}, comprobarla y reiniciarse.
+
+Tus archivos y tus preferencias no se tocan. Tarda alrededor de un minuto con una conexión normal.</value></data>
+  <data name="UpdateRestarting" xml:space="preserve"><value>Reiniciando con la versión nueva...</value></data>
+  <data name="UpdateFailedStatus" xml:space="preserve"><value>La actualización no se completó. No se cambió nada.</value></data>
+  <data name="UpdateFailedTitle" xml:space="preserve"><value>No se instaló la actualización</value></data>
+  <data name="UpdateFailedBody" xml:space="preserve"><value>MdPipe no ha podido actualizarse:
+
+{0}
+
+No se ha cambiado nada en tu ordenador. ¿Quieres abrir la página de descarga y hacerlo a mano?</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Descárgala</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Ocultar hasta la próxima vez</value></data>
   <data name="SkippedFolderOne" xml:space="preserve"><value>Se omitió 1 carpeta sin permiso de lectura.</value></data>

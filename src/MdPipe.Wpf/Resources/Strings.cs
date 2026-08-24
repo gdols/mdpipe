@@ -116,6 +116,27 @@ public static class Strings
     /// <summary>MdPipe {0} is available and your version, {1}, has a known problem.</summary>
     public static string UpdateCritical => Get("UpdateCritical");
 
+    /// <summary>Update now</summary>
+    public static string UpdateInstall => Get("UpdateInstall");
+
+    /// <summary>Update MdPipe</summary>
+    public static string UpdateConfirmTitle => Get("UpdateConfirmTitle");
+
+    /// <summary>MdPipe will download version {0}, check it, and restart itself.</summary>
+    public static string UpdateConfirmBody => Get("UpdateConfirmBody");
+
+    /// <summary>Restarting into the new version...</summary>
+    public static string UpdateRestarting => Get("UpdateRestarting");
+
+    /// <summary>The update did not go through. Nothing was changed.</summary>
+    public static string UpdateFailedStatus => Get("UpdateFailedStatus");
+
+    /// <summary>Update not installed</summary>
+    public static string UpdateFailedTitle => Get("UpdateFailedTitle");
+
+    /// <summary>MdPipe could not update itself:</summary>
+    public static string UpdateFailedBody => Get("UpdateFailedBody");
+
     /// <summary>Get it</summary>
     public static string UpdateGetIt => Get("UpdateGetIt");
 

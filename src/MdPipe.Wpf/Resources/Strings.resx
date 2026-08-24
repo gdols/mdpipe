@@ -63,6 +63,19 @@
   <data name="ScanCancelled" xml:space="preserve"><value>Search stopped. {0} files were added.</value></data>
   <data name="UpdateAvailable" xml:space="preserve"><value>MdPipe {0} is available. You are on {1}.</value></data>
   <data name="UpdateCritical" xml:space="preserve"><value>MdPipe {0} is available and your version, {1}, has a known problem.</value></data>
+  <data name="UpdateInstall" xml:space="preserve"><value>Update now</value></data>
+  <data name="UpdateConfirmTitle" xml:space="preserve"><value>Update MdPipe</value></data>
+  <data name="UpdateConfirmBody" xml:space="preserve"><value>MdPipe will download version {0}, check it, and restart itself.
+
+Your files and settings are not touched. This takes about a minute on a normal connection.</value></data>
+  <data name="UpdateRestarting" xml:space="preserve"><value>Restarting into the new version...</value></data>
+  <data name="UpdateFailedStatus" xml:space="preserve"><value>The update did not go through. Nothing was changed.</value></data>
+  <data name="UpdateFailedTitle" xml:space="preserve"><value>Update not installed</value></data>
+  <data name="UpdateFailedBody" xml:space="preserve"><value>MdPipe could not update itself:
+
+{0}
+
+Nothing on your computer was changed. Would you like to open the download page and do it by hand?</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Get it</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Hide this until next time</value></data>
   <data name="SkippedFolderOne" xml:space="preserve"><value>Skipped 1 folder you do not have permission to read.</value></data>

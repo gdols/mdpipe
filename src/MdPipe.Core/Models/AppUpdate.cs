@@ -1,4 +1,4 @@
-namespace MdPipe.Core.Models;
+﻿namespace MdPipe.Core.Models;
 
 /// <summary>
 /// A newer MdPipe exists and this copy is older than it. Only ever built when there is genuinely
@@ -9,4 +9,5 @@ public sealed record AppUpdate(
     string Version,
     string ReleaseUrl,
     string Notes,
-    bool Critical);
+    bool Critical,
+    string DownloadUrl = "");

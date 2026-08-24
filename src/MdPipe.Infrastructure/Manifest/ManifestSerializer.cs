@@ -60,10 +60,12 @@ internal static class ManifestSerializer
         public string ReleaseUrl { get; set; } = string.Empty;
         public string CriticalBelow { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
+        public string DownloadUrl { get; set; } = string.Empty;
 
         public AppRelease? ToModel() =>
             string.IsNullOrWhiteSpace(LatestVersion) || string.IsNullOrWhiteSpace(ReleaseUrl)
                 ? null
-                : new AppRelease(LatestVersion.Trim(), ReleaseUrl.Trim(), CriticalBelow.Trim(), Notes.Trim());
+                : new AppRelease(
+                    LatestVersion.Trim(), ReleaseUrl.Trim(), CriticalBelow.Trim(), Notes.Trim(), DownloadUrl.Trim());
     }
 }
