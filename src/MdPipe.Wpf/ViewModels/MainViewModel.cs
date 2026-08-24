@@ -208,29 +208,26 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (PythonEnvironmentException ex)
         {
-            var envInfo = await _environmentManager.GetEnvironmentInfoAsync();
-            if (envInfo.IsReady && envInfo.InstalledMarkItDownVersion is not null)
-            {
-                IsReady = true;
-                StatusMessage = string.Format(Strings.ReadyWithVersion, envInfo.InstalledMarkItDownVersion);
-            }
-            else
-            {
-                IsReady = false;
-                StatusMessage = Strings.SetupUnfinishedStatus;
-                _dialogs.ShowMessage(
-                    string.Format(Strings.SetupUnfinishedBody, ex.Message),
-                    Strings.SetupUnfinishedTitle, DialogKind.Warning);
-            }
+            if (await UsableEnvironmentSurvivedAsync()) return;
+
+            IsReady = false;
+            StatusMessage = Strings.SetupUnfinishedStatus;
+            _dialogs.ShowMessage(
+                string.Format(Strings.SetupUnfinishedBody, ex.Message),
+                Strings.SetupUnfinishedTitle, DialogKind.Warning);
         }
         catch (MdPipeException ex)
         {
+            if (await UsableEnvironmentSurvivedAsync()) return;
+
             IsReady = false;
             StatusMessage = Strings.PrepareFailedStatus;
             _dialogs.ShowMessage(ex.Message, Strings.PrepareFailedTitle, DialogKind.Error);
         }
         catch (Exception ex)
         {
+            if (await UsableEnvironmentSurvivedAsync()) return;
+
             IsReady = false;
             StatusMessage = Strings.SetupFailedStatus;
             _dialogs.ShowMessage(
@@ -240,6 +237,30 @@ public sealed class MainViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Preparing the environment failed. Before saying so, ask the engine on disk whether it works:
+    /// if it does, that is the answer that matters. Checking the version is a nicety, converting is
+    /// the job, and refusing to do the job because a version check timed out is the wrong trade.
+    /// </summary>
+    /// <returns>True when the app was put into a usable state and the caller should stop.</returns>
+    private async Task<bool> UsableEnvironmentSurvivedAsync()
+    {
+        try
+        {
+            var envInfo = await _environmentManager.GetEnvironmentInfoAsync();
+            if (!envInfo.IsReady || envInfo.InstalledMarkItDownVersion is null) return false;
+
+            IsReady = true;
+            StatusMessage = string.Format(Strings.ReadyWithVersion, envInfo.InstalledMarkItDownVersion);
+            return true;
+        }
+        catch (Exception)
+        {
+            // The recovery attempt itself failing just means there is nothing to recover.
+            return false;
         }
     }
 

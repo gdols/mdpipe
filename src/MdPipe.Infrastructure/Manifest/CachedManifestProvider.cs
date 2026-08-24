@@ -1,4 +1,5 @@
-using System.Text.Json;
+﻿using System.Text.Json;
+using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -36,18 +37,33 @@ public sealed class CachedManifestProvider : IManifestProvider
         }
 
         _logger.LogDebug("Cache miss or expired. Fetching manifest from remote");
-        var manifest = await _inner.GetManifestAsync(cancellationToken);
-        WriteCache(manifest);
-        return manifest;
+        try
+        {
+            var manifest = await _inner.GetManifestAsync(cancellationToken);
+            WriteCache(manifest);
+            return manifest;
+        }
+        catch (ManifestException ex)
+        {
+            // An expired cache used to be thrown away outright, which sent an offline machine all the
+            // way down to the copy baked into the build. Yesterday's answer is a much better guess
+            // than one from whenever this version was released.
+            if (!TryReadCache(out var stale, ignoreAge: true)) throw;
+
+            _logger.LogWarning(
+                "Remote manifest unavailable ({Reason}). Falling back to the cached copy from {Written:u}.",
+                ex.Message, File.GetLastWriteTimeUtc(_cachePath));
+            return stale!;
+        }
     }
 
-    private bool TryReadCache(out CompatibilityManifest? manifest)
+    private bool TryReadCache(out CompatibilityManifest? manifest, bool ignoreAge = false)
     {
         manifest = null;
         if (!File.Exists(_cachePath)) return false;
 
         var lastWrite = File.GetLastWriteTimeUtc(_cachePath);
-        if (DateTime.UtcNow - lastWrite > CacheTtl) return false;
+        if (!ignoreAge && DateTime.UtcNow - lastWrite > CacheTtl) return false;
 
         try
         {
