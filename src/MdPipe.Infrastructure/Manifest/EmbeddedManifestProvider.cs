@@ -1,11 +1,11 @@
-using System.Reflection;
+﻿using System.Reflection;
 using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 
 namespace MdPipe.Infrastructure.Manifest;
 
-public sealed class EmbeddedManifestProvider : IManifestProvider
+public sealed class EmbeddedManifestProvider : IBuildManifestProvider
 {
     private const string ResourceName = "MdPipe.Infrastructure.Resources.markitdown-compat.json";
 

@@ -47,7 +47,7 @@ public sealed class MainViewModelTests : IDisposable
     private MainViewModel BuildSut()
     {
         var orchestrator = new SetupOrchestrator(
-            _manifest, _environment, new VersionGateService(), NullLogger<SetupOrchestrator>.Instance);
+            _manifest, _manifest, _environment, new VersionGateService(), NullLogger<SetupOrchestrator>.Instance);
 
         // Both pointed at paths that don't exist, so the tests never read or write the real machine's
         // catalog or the user's saved preferences.
@@ -354,7 +354,7 @@ public sealed class MainViewModelTests : IDisposable
             Task.CompletedTask;
     }
 
-    private sealed class FakeManifest : IManifestProvider
+    private sealed class FakeManifest : IBuildManifestProvider
     {
         /// <summary>What the manifest claims the newest MdPipe is, or null for the older schema.</summary>
         public AppRelease? App { get; set; }

@@ -231,7 +231,7 @@ public sealed class MainViewModel : ObservableObject
 
             // The manifest is already fetched, cached and falls back on its own, so learning whether
             // a newer MdPipe exists costs nothing extra and works the same when offline.
-            _update = _updates.CheckFor(result.Manifest, _runningVersion);
+            _update = _updates.CheckFor(result.App, _runningVersion);
             OnPropertyChanged(nameof(Update));
             OnPropertyChanged(nameof(HasUpdate));
             OnPropertyChanged(nameof(UpdateMessage));

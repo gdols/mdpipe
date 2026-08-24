@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
 
@@ -8,14 +8,8 @@ public sealed class AppUpdateServiceTests
 {
     private readonly AppUpdateService _sut = new(new VersionGateService());
 
-    private static CompatibilityManifest Announcing(
-        string latest, string criticalBelow = "", string notes = "") => new()
-    {
-        SchemaVersion = 2,
-        StableVersion = "0.1.7",
-        CompatibleVersions = new List<string> { "0.1.7" }.AsReadOnly(),
-        App = new AppRelease(latest, "https://example.invalid/releases/latest", criticalBelow, notes)
-    };
+    private static AppRelease Announcing(string latest, string criticalBelow = "", string notes = "") =>
+        new(latest, "https://example.invalid/releases/latest", criticalBelow, notes);
 
     [Fact]
     public void WhenANewerReleaseExists_SaysSo()
@@ -41,11 +35,10 @@ public sealed class AppUpdateServiceTests
     }
 
     [Fact]
-    public void OnTheOlderSchemaWithNoAppBlock_SaysNothing()
+    public void WhenTheRepositoryNamedNoRelease_SaysNothing()
     {
-        var manifest = new CompatibilityManifest { SchemaVersion = 1, StableVersion = "0.1.7" };
-
-        _sut.CheckFor(manifest, runningVersion: "0.1.0").Should().BeNull();
+        // Either an older manifest with no app block, or the repository being unreachable.
+        _sut.CheckFor(null, runningVersion: "0.1.0").Should().BeNull();
     }
 
     [Fact]

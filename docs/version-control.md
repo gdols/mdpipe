@@ -1,8 +1,29 @@
 ﻿# MarkItDown Version Control in MdPipe
 
 MdPipe wraps [Microsoft MarkItDown](https://github.com/microsoft/markitdown), a Python library.
-Because Python libraries can introduce breaking changes between releases, MdPipe uses a
-**compatibility manifest** to ensure it never automatically upgrades to an untested version.
+Python libraries introduce breaking changes between releases, so MdPipe never installs one that
+has not been tried.
+
+**A release of MdPipe is a pairing.** One application and one MarkItDown, tested together. Which
+engine a copy of MdPipe installs is decided by the build it came from, and nothing else changes
+it. If a new MarkItDown brings something worth having, that reaches people the way everything
+else does: in a new release of MdPipe, once it has been looked at.
+
+That is why there are two manifests doing two different jobs.
+
+| | Answers | Comes from |
+|---|---|---|
+| Build manifest | which engine to install | the copy of `markitdown-compat.json` compiled into that build |
+| Remote manifest | whether a newer MdPipe exists | the same file, fetched from this repository |
+
+They are the same file in the repository, embedded at build time. The difference is *when* each
+copy was read: the build's copy was frozen when the release was cut, the remote one is whatever
+master says today.
+
+The practical consequence, and the reason it is worth the extra indirection: **editing this
+repository cannot change what is installed on somebody's machine.** It can only tell them that a
+newer MdPipe is available. Setting up the engine also stops depending on GitHub being reachable,
+since its instructions travel inside the executable.
 
 ## How it works
 
@@ -69,8 +90,16 @@ read it without complaint.
 
 ### 2. The version gate
 
-Before any conversion, `VersionGateService` checks that the installed MarkItDown version
-appears in `compatibleVersions`. If not, the command fails with a clear message:
+`SetupOrchestrator` compares what is installed against the version the build pins, and replaces
+it when they differ, in either direction. Comparison is by version rather than by text, so an
+engine recorded as `0.1.7` and reporting itself as `0.1.7.0` counts as a match. That detail is
+load bearing: a target that could never equal what gets installed would reinstall several
+hundred megabytes on every launch, forever.
+
+An engine whose version cannot be parsed at all gets replaced, since something nobody can
+identify is not what the release was tried with.
+
+The CLI additionally refuses to convert with a version outside `compatibleVersions`:
 
 ```
 Version gate blocked: MarkItDown 0.2.0 is not in the validated set.
@@ -123,6 +152,11 @@ It never edits the manifest. Accepting a version is still a decision:
    manifest is cached.
 
 To reject one, say why in the issue and close it. That way the refusal is on the record too.
+
+Note what accepting does and does not do. Editing the manifest records that a version is
+validated and changes what **future builds** install. It does not touch anyone's machine. Moving
+people onto it means releasing an MdPipe that carries it, which is the point: the two versions
+travel together and you decide when.
 
 You can see the report without waiting for Monday: run the workflow by hand with
 `pretend_current` set to an older version, or locally with

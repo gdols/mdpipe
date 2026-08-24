@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddSingleton<EmbeddedManifestProvider>();
+        services.AddSingleton<IBuildManifestProvider>(sp => sp.GetRequiredService<EmbeddedManifestProvider>());
         services.AddSingleton<IManifestProvider>(sp =>
         {
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
