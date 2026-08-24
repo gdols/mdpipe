@@ -62,18 +62,3 @@ jobs:
             gh release create ${{ github.ref_name }} --draft --title "MdPipe ${{ github.ref_name }}" --generate-notes $exe
           }
 
-      # Only runs once WINGET_TOKEN exists, so the release works exactly as before until winget
-      # is actually set up. See packaging/winget/README.md for the one-time steps.
-      - name: Offer the new version to winget
-        if: env.WINGET_TOKEN != ''
-        env:
-          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
-        shell: pwsh
-        run: |
-          $version = "${{ github.ref_name }}" -replace '^v', ''
-          $url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/MdPipe.exe"
-
-          # wingetcreate is Microsoft's own tool. It reads the manifest already in winget-pkgs,
-          # bumps the version, recomputes the hash from the URL and opens the pull request.
-          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
-          .\wingetcreate.exe update Gdols.MdPipe --version $version --urls "$url" --submit --token $env:WINGET_TOKEN
