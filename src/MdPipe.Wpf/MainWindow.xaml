@@ -5,7 +5,7 @@
         xmlns:vm="clr-namespace:MdPipe.Wpf.ViewModels"
         xmlns:res="clr-namespace:MdPipe.Wpf.Resources"
         Title="{res:Str WindowTitle}"
-        Icon="/Assets/icon.png"
+        Icon="/MdPipe;component/Assets/icon.png"
         Height="640" Width="780"
         MinHeight="520" MinWidth="640"
         WindowStartupLocation="CenterScreen"
@@ -30,7 +30,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,18">
-            <Image Source="/Assets/icon.png" Width="54" Height="54" Margin="0,0,15,0"
+            <Image Source="/MdPipe;component/Assets/icon.png" Width="54" Height="54" Margin="0,0,15,0"
                    VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
             <StackPanel VerticalAlignment="Center">
                 <TextBlock FontSize="30" FontWeight="Bold">
@@ -89,7 +89,7 @@
                                    Foreground="{StaticResource TextPrimary}" />
                         <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0" FontSize="13">
                             <Hyperlink Command="{Binding UpdateCommand}" Foreground="{StaticResource Accent}"
-                                       TextDecorations="None"><Run Text="{Binding UpdateActionText}" /></Hyperlink>
+                                       TextDecorations="None"><Run Text="{Binding UpdateActionText, Mode=OneWay}" /></Hyperlink>
                         </TextBlock>
                         <Button Grid.Column="2" Content="&#x2715;" Command="{Binding DismissUpdateCommand}"
                                 ToolTip="{res:Str UpdateDismiss}" Margin="12,0,0,0" Padding="6,0"

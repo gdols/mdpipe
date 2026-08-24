@@ -7,7 +7,7 @@
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource Background}"
-        Icon="/Assets/icon.png"
+        Icon="/MdPipe;component/Assets/icon.png"
         FontFamily="Segoe UI">
 
     <Border Margin="26" Background="{StaticResource Surface}" CornerRadius="14"

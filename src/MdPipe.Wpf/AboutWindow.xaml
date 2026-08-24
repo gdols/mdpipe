@@ -7,14 +7,14 @@
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource Background}"
-        Icon="/Assets/icon.png"
+        Icon="/MdPipe;component/Assets/icon.png"
         FontFamily="Segoe UI">
 
     <Border Margin="26" Background="{StaticResource Surface}" CornerRadius="14"
             BorderBrush="{StaticResource Border}" BorderThickness="1" Padding="28">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
-                <Image Source="/Assets/icon.png" Width="60" Height="60" Margin="0,0,16,0"
+                <Image Source="/MdPipe;component/Assets/icon.png" Width="60" Height="60" Margin="0,0,16,0"
                        VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock FontSize="26" FontWeight="Bold">
