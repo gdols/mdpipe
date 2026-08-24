@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using MdPipe.Core.Exceptions;
 using MdPipe.Infrastructure.Manifest;
 
@@ -86,10 +86,10 @@ public sealed class ManifestSchemaTests
     }
 
     [Fact]
-    public void TheManifestShippedInThisRepositoryParses()
+    public async Task TheManifestShippedInThisRepositoryParses()
     {
         // Catches a typo in the real file before it reaches every installed copy at once.
-        var manifest = new EmbeddedManifestProvider().GetManifestAsync().GetAwaiter().GetResult();
+        var manifest = await new EmbeddedManifestProvider().GetManifestAsync();
 
         manifest.CompatibleVersions.Should().Contain(manifest.StableVersion);
         manifest.App.Should().NotBeNull("the repository manifest is on schema 2");
