@@ -1,4 +1,4 @@
-namespace MdPipe.Core.Models;
+﻿namespace MdPipe.Core.Models;
 
 /// <summary>
 /// What the manifest says about MdPipe itself, as opposed to the engine it wraps.
@@ -15,8 +15,12 @@ namespace MdPipe.Core.Models;
 /// </remarks>
 /// <param name="CriticalBelow">Versions older than this have a known problem, so the notice says so
 /// plainly instead of reading as an optional upgrade. Empty when no release is that bad.</param>
+/// <param name="DownloadUrl">The executable for this release, at its versioned address rather than
+/// a "latest" one that would start pointing somewhere else. Empty means MdPipe can only send the
+/// user to <paramref name="ReleaseUrl"/> and let them fetch it themselves.</param>
 public sealed record AppRelease(
     string LatestVersion,
     string ReleaseUrl,
     string CriticalBelow = "",
-    string Notes = "");
+    string Notes = "",
+    string DownloadUrl = "");

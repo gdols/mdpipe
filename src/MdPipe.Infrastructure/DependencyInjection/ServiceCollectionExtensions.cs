@@ -3,6 +3,7 @@ using MdPipe.Core.Services;
 using MdPipe.Infrastructure.MarkItDown;
 using MdPipe.Infrastructure.Manifest;
 using MdPipe.Infrastructure.Python;
+using MdPipe.Infrastructure.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PythonEnvironmentManager>();
         services.AddSingleton<IPythonEnvironmentManager>(sp => sp.GetRequiredService<PythonEnvironmentManager>());
         services.AddSingleton<IMarkItDownConverter, MarkItDownConverter>();
+        services.AddSingleton<IAppUpdateInstaller, AppUpdateInstaller>();
 
         services.AddHttpClient<GitHubManifestProvider>(client =>
         {

@@ -32,7 +32,8 @@ public sealed class AppUpdateService(VersionGateService versions)
             release.LatestVersion,
             release.ReleaseUrl,
             release.Notes,
-            Critical: IsCritical(release, runningVersion));
+            Critical: IsCritical(release, runningVersion),
+            DownloadUrl: release.DownloadUrl);
     }
 
     /// <summary>

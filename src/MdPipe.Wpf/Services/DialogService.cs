@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
@@ -14,6 +14,18 @@ public sealed class DialogService : IDialogService
             DialogKind.Warning => MessageBoxImage.Warning,
             _ => MessageBoxImage.Information
         });
+
+    public bool Confirm(string message, string title) =>
+        MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+
+    public void OpenLink(string url) =>
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+
+    public void RestartWith(string executablePath)
+    {
+        Process.Start(new ProcessStartInfo(executablePath) { UseShellExecute = true });
+        Application.Current.Shutdown();
+    }
 
     public string? PickFolder(string title)
     {

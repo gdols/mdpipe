@@ -7,6 +7,11 @@ and copying it across.
 
 ## Unreleased
 
+- **MdPipe can update itself, if you say yes.** The notice now offers to do the work: it fetches
+  the new version, checks it against the published checksum, replaces itself and restarts. It
+  asks first, every time, and where it cannot write to its own folder it opens the release page
+  instead of failing halfway.
+
 - **The engine no longer changes on its own.** Each release of MdPipe now installs the exact
   MarkItDown version it was tested with, taken from the executable rather than fetched from the
   repository. A new engine arrives when a new MdPipe does. Setting it up also stopped depending

@@ -32,6 +32,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly FormatCatalogProvider _formats;
     private readonly IDialogService _dialogs;
     private readonly AppUpdateService _updates;
+    private readonly IAppUpdateInstaller _updateInstaller;
     private readonly string? _runningVersion;
     private bool _includeEverything;
     private AppUpdate? _update;
@@ -45,6 +46,7 @@ public sealed class MainViewModel : ObservableObject
         FormatCatalogProvider formats,
         IDialogService dialogs,
         AppUpdateService updates,
+        IAppUpdateInstaller updateInstaller,
         UserSettings settings,
         string? runningVersion = null)
     {
@@ -55,6 +57,7 @@ public sealed class MainViewModel : ObservableObject
         _formats = formats;
         _dialogs = dialogs;
         _updates = updates;
+        _updateInstaller = updateInstaller;
         _settings = settings;
         _runningVersion = runningVersion;
 
@@ -73,12 +76,14 @@ public sealed class MainViewModel : ObservableObject
                 _scanCts?.Cancel();
             },
             () => CanCancel);
+        UpdateCommand = new RelayCommand(async () => await UpdateAsync(), () => HasUpdate && !IsBusy);
         DismissUpdateCommand = new RelayCommand(() =>
         {
             // Only for this session. Nagging every launch is rude; forgetting entirely means the
             // people this feature exists for never hear about the fix again.
             _updateDismissed = true;
             OnPropertyChanged(nameof(HasUpdate));
+            OnPropertyChanged(nameof(CanInstallUpdate));
         });
 
         if (!string.IsNullOrEmpty(_settings.OutputFolder) && Directory.Exists(_settings.OutputFolder))
@@ -93,7 +98,18 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ChooseOutputFolderCommand { get; }
     public RelayCommand ReinstallCommand { get; }
     public RelayCommand CancelCommand { get; }
+    public RelayCommand UpdateCommand { get; }
     public RelayCommand DismissUpdateCommand { get; }
+
+    /// <summary>
+    /// Whether MdPipe can replace itself here, or can only point at the release page. False on
+    /// read-only media, under Program Files, and anywhere else the folder cannot be written to.
+    /// </summary>
+    public bool CanInstallUpdate =>
+        Update is { DownloadUrl.Length: > 0 } && _updateInstaller.CanInstall;
+
+    /// <summary>What the link offers to do, which depends on whether it can actually do it.</summary>
+    public string UpdateActionText => CanInstallUpdate ? Strings.UpdateInstall : Strings.UpdateGetIt;
 
     /// <summary>
     /// The newer release the manifest named, if there is one and the user hasn't waved it away.
@@ -235,6 +251,8 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(Update));
             OnPropertyChanged(nameof(HasUpdate));
             OnPropertyChanged(nameof(UpdateMessage));
+            OnPropertyChanged(nameof(CanInstallUpdate));
+            OnPropertyChanged(nameof(UpdateActionText));
         }
         catch (PythonNotFoundException)
         {
@@ -269,6 +287,52 @@ public sealed class MainViewModel : ObservableObject
             _dialogs.ShowMessage(
                 string.Format(Strings.SetupFailedBody, ex.Message),
                 Strings.SetupUnfinishedTitle, DialogKind.Error);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Replaces MdPipe with the newer release, having asked first.
+    /// </summary>
+    /// <remarks>
+    /// Where the executable cannot be written, this opens the release page instead of failing at
+    /// the last step. That is not a rare case: plenty of people keep a portable tool somewhere they
+    /// do not own.
+    /// </remarks>
+    private async Task UpdateAsync()
+    {
+        if (Update is not { } update) return;
+
+        if (!CanInstallUpdate)
+        {
+            _dialogs.OpenLink(update.ReleaseUrl);
+            return;
+        }
+
+        if (!_dialogs.Confirm(
+                string.Format(Strings.UpdateConfirmBody, update.Version),
+                Strings.UpdateConfirmTitle))
+            return;
+
+        IsBusy = true;
+        try
+        {
+            var progress = new Progress<string>(message => StatusMessage = message);
+            var newExecutable = await _updateInstaller.InstallAsync(update, progress);
+
+            StatusMessage = Strings.UpdateRestarting;
+            _dialogs.RestartWith(newExecutable);
+        }
+        catch (AppUpdateException ex)
+        {
+            // Nothing was changed on the way to here, so offering the manual route is honest.
+            StatusMessage = Strings.UpdateFailedStatus;
+            if (_dialogs.Confirm(
+                    string.Format(Strings.UpdateFailedBody, ex.Message), Strings.UpdateFailedTitle))
+                _dialogs.OpenLink(update.ReleaseUrl);
         }
         finally
         {
