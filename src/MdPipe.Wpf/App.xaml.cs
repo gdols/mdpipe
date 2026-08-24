@@ -1,4 +1,7 @@
-﻿using System.Windows;
+﻿using System.Reflection;
+using System.Windows;
+using MdPipe.Core.Interfaces;
+using MdPipe.Core.Services;
 using MdPipe.Infrastructure.DependencyInjection;
 using MdPipe.Wpf.Services;
 using MdPipe.Wpf.ViewModels;
@@ -15,6 +18,13 @@ public partial class App : Application
 
     private readonly IHost _host;
 
+    /// <summary>
+    /// What this build calls itself, for comparing against the release the manifest names. Comes from
+    /// the single Version in Directory.Build.props, which the release workflow checks against the tag.
+    /// </summary>
+    private static string? RunningVersion =>
+        Assembly.GetExecutingAssembly().GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : null;
+
     public App()
     {
         _host = Host.CreateDefaultBuilder()
@@ -28,7 +38,16 @@ public partial class App : Application
                 services.AddMdPipeInfrastructure(ManifestUrl);
                 services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton(UserSettings.Load());
-                services.AddSingleton<MainViewModel>();
+                services.AddSingleton(sp => new MainViewModel(
+                    sp.GetRequiredService<SetupOrchestrator>(),
+                    sp.GetRequiredService<IMarkItDownConverter>(),
+                    sp.GetRequiredService<IPythonEnvironmentManager>(),
+                    sp.GetRequiredService<InputResolver>(),
+                    sp.GetRequiredService<FormatCatalogProvider>(),
+                    sp.GetRequiredService<IDialogService>(),
+                    sp.GetRequiredService<AppUpdateService>(),
+                    sp.GetRequiredService<UserSettings>(),
+                    RunningVersion));
                 services.AddSingleton<MainWindow>();
             })
             .Build();

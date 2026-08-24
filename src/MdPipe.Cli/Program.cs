@@ -30,6 +30,7 @@ var converter = host.Services.GetRequiredService<IMarkItDownConverter>();
 var environmentManager = host.Services.GetRequiredService<IPythonEnvironmentManager>();
 var manifestProvider = host.Services.GetRequiredService<IManifestProvider>();
 var versionGate = host.Services.GetRequiredService<VersionGateService>();
+var appUpdates = host.Services.GetRequiredService<AppUpdateService>();
 var orchestrator = host.Services.GetRequiredService<SetupOrchestrator>();
 var inputResolver = host.Services.GetRequiredService<InputResolver>();
 var formatCatalog = host.Services.GetRequiredService<FormatCatalogProvider>();
@@ -38,7 +39,7 @@ var root = new RootCommand("MdPipe: convert documents to Markdown using Microsof
 {
     ConvertCommand.Build(converter, environmentManager, manifestProvider, versionGate, inputResolver),
     SetupCommand.Build(orchestrator),
-    StatusCommand.Build(environmentManager, manifestProvider, versionGate),
+    StatusCommand.Build(environmentManager, manifestProvider, versionGate, appUpdates),
     FormatsCommand.Build(formatCatalog)
 };
 

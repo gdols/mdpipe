@@ -27,6 +27,7 @@ public sealed class MainViewModelTests : IDisposable
     private readonly FakeConverter _converter = new();
     private readonly FakeDialogs _dialogs = new();
     private readonly FakeEnvironment _environment = new();
+    private readonly FakeManifest _manifest = new();
 
     public MainViewModelTests()
     {
@@ -40,10 +41,13 @@ public sealed class MainViewModelTests : IDisposable
         try { Directory.Delete(_dir, recursive: true); } catch { }
     }
 
+    /// <summary>What the build under test claims to be, so update tests can sit either side of it.</summary>
+    private const string RunningVersion = "0.4.0";
+
     private MainViewModel BuildSut()
     {
         var orchestrator = new SetupOrchestrator(
-            new FakeManifest(), _environment, new VersionGateService(), NullLogger<SetupOrchestrator>.Instance);
+            _manifest, _environment, new VersionGateService(), NullLogger<SetupOrchestrator>.Instance);
 
         // Both pointed at paths that don't exist, so the tests never read or write the real machine's
         // catalog or the user's saved preferences.
@@ -51,7 +55,9 @@ public sealed class MainViewModelTests : IDisposable
 
         return new MainViewModel(
             orchestrator, _converter, _environment, new InputResolver(formats), formats, _dialogs,
-            UserSettings.Load(Path.Combine(_dir, "settings.json")));
+            new AppUpdateService(new VersionGateService()),
+            UserSettings.Load(Path.Combine(_dir, "settings.json")),
+            RunningVersion);
     }
 
     private string CreateFile(string relativePath)
@@ -124,6 +130,64 @@ public sealed class MainViewModelTests : IDisposable
 
         vm.StatusMessage.Should().Contain("Cancelled");
         vm.Files.Should().Contain(f => f.Status == FileStatus.Pending);
+    }
+
+    [Fact]
+    public async Task WhenTheManifestNamesANewerRelease_TheBarAppears()
+    {
+        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.HasUpdate.Should().BeTrue();
+        vm.Update!.Version.Should().Be("0.9.0");
+        vm.UpdateMessage.Should().Contain("0.9.0").And.Contain(RunningVersion);
+    }
+
+    [Fact]
+    public async Task WhenThisIsTheNewestRelease_ThereIsNoBar()
+    {
+        _manifest.App = new AppRelease(RunningVersion, "https://example.invalid/r");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.HasUpdate.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task OnAManifestWithoutTheReleaseBlock_ThereIsNoBar()
+    {
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.HasUpdate.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DismissingTheBar_HidesItForThisSession()
+    {
+        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r");
+        var vm = BuildSut();
+        await vm.InitializeAsync();
+
+        vm.DismissUpdateCommand.Execute(null);
+
+        vm.HasUpdate.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AnOldEnoughVersion_GetsTheBlunterWording()
+    {
+        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r", CriticalBelow: "0.8.0");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.Update!.Critical.Should().BeTrue();
+        vm.UpdateMessage.Should().Contain("known problem");
     }
 
     [Fact]
@@ -292,15 +356,19 @@ public sealed class MainViewModelTests : IDisposable
 
     private sealed class FakeManifest : IManifestProvider
     {
+        /// <summary>What the manifest claims the newest MdPipe is, or null for the older schema.</summary>
+        public AppRelease? App { get; set; }
+
         public Task<CompatibilityManifest> GetManifestAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(new CompatibilityManifest
             {
-                SchemaVersion = 1,
+                SchemaVersion = App is null ? 1 : 2,
                 StableVersion = "0.1.7",
                 MinimumVersion = "0.1.7",
                 CompatibleVersions = new List<string> { "0.1.7" }.AsReadOnly(),
                 UpdatedAt = DateOnly.FromDateTime(DateTime.Today),
-                Notes = string.Empty
+                Notes = string.Empty,
+                App = App
             });
     }
 }

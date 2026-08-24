@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using MdPipe.Core.Exceptions;
+﻿using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -30,10 +29,6 @@ public sealed class GitHubManifestProvider(
         {
             throw new ManifestException(
                 $"Timed out fetching the manifest after {httpClient.Timeout.TotalSeconds:0} seconds.", ex);
-        }
-        catch (JsonException ex)
-        {
-            throw new ManifestException($"Manifest JSON is malformed: {ex.Message}", ex);
         }
     }
 }

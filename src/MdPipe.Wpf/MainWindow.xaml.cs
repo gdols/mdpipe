@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Input;
 using MdPipe.Wpf.Resources;
 using MdPipe.Wpf.ViewModels;
@@ -63,6 +64,16 @@ public partial class MainWindow : Window
     {
         if (ViewModel is null) return;
         new FormatsWindow(ViewModel.Formats) { Owner = this }.ShowDialog();
+    }
+
+    private void UpdateLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.Update is not { } update) return;
+
+        // Opened in the browser rather than downloaded and swapped in. A portable executable can be
+        // running from a memory stick or a folder it has no right to write to, and an unsigned binary
+        // that rewrites itself is exactly the shape antivirus software is looking for.
+        Process.Start(new ProcessStartInfo(update.ReleaseUrl) { UseShellExecute = true });
     }
 
     private void HelpButton_Click(object sender, RoutedEventArgs e)

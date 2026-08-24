@@ -1,4 +1,5 @@
-using System.CommandLine;
+﻿using System.CommandLine;
+using System.Reflection;
 using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Services;
@@ -10,7 +11,8 @@ public static class StatusCommand
     public static Command Build(
         IPythonEnvironmentManager environmentManager,
         IManifestProvider manifestProvider,
-        VersionGateService versionGate)
+        VersionGateService versionGate,
+        AppUpdateService appUpdates)
     {
         var command = new Command("status", "Show environment and version compatibility status");
 
@@ -44,6 +46,15 @@ public static class StatusCommand
                     var compatible = versionGate.IsCompatible(envInfo.InstalledMarkItDownVersion, manifest);
                     Console.WriteLine($"  Version gate      : {(compatible ? "PASS" : "FAIL: run 'mdpipe setup'")}");
                 }
+
+                // Rides the manifest that was just fetched, so this costs no extra request.
+                if (appUpdates.CheckFor(manifest, RunningVersion) is { } update)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"  MdPipe {RunningVersion} is running; {update.Version} is out: {update.ReleaseUrl}");
+                    if (!string.IsNullOrWhiteSpace(update.Notes))
+                        Console.WriteLine($"  {update.Notes}");
+                }
             }
             catch (ManifestException ex)
             {
@@ -55,4 +66,8 @@ public static class StatusCommand
 
         return command;
     }
+
+    /// <summary>The version of the tool doing the asking, from the single Version in Directory.Build.props.</summary>
+    private static string? RunningVersion =>
+        Assembly.GetExecutingAssembly().GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : null;
 }

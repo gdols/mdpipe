@@ -1,4 +1,5 @@
 ﻿using MdPipe.Core.Interfaces;
+using MdPipe.Core.Models;
 using Microsoft.Extensions.Logging;
 
 namespace MdPipe.Core.Services;
@@ -36,7 +37,7 @@ public sealed class SetupOrchestrator(
                 Report(progress, $"MarkItDown {envInfo.InstalledMarkItDownVersion} is ready.");
                 // The version is already in hand; asking again would start another interpreter.
                 await environmentManager.EnsureFormatCatalogAsync(envInfo.InstalledMarkItDownVersion, cancellationToken);
-                return SetupResult.AlreadyUpToDate(envInfo.InstalledMarkItDownVersion);
+                return SetupResult.AlreadyUpToDate(envInfo.InstalledMarkItDownVersion, manifest);
             }
 
             if (versionGate.IsCompatible(envInfo.InstalledMarkItDownVersion, manifest))
@@ -56,7 +57,7 @@ public sealed class SetupOrchestrator(
         Report(progress, $"MarkItDown {targetVersion} installed.");
         await environmentManager.EnsureFormatCatalogAsync(targetVersion, cancellationToken);
 
-        return SetupResult.Installed(targetVersion);
+        return SetupResult.Installed(targetVersion, manifest);
     }
 
     private static void Report(IProgress<string>? progress, string message) => progress?.Report(message);
@@ -67,6 +68,15 @@ public sealed class SetupResult
     public bool WasInstalled { get; private init; }
     public string Version { get; private init; } = string.Empty;
 
-    public static SetupResult Installed(string version) => new() { WasInstalled = true, Version = version };
-    public static SetupResult AlreadyUpToDate(string version) => new() { WasInstalled = false, Version = version };
+    /// <summary>
+    /// The manifest this run went by. Handed back rather than acted on here, because what to do with
+    /// it depends on who is asking: the desktop app shows a bar, the CLI prints a line.
+    /// </summary>
+    public CompatibilityManifest Manifest { get; private init; } = new();
+
+    public static SetupResult Installed(string version, CompatibilityManifest manifest) =>
+        new() { WasInstalled = true, Version = version, Manifest = manifest };
+
+    public static SetupResult AlreadyUpToDate(string version, CompatibilityManifest manifest) =>
+        new() { WasInstalled = false, Version = version, Manifest = manifest };
 }

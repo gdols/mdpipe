@@ -1,4 +1,4 @@
-name: Release
+﻿name: Release
 
 # Tag a commit as v0.2.0 (or any v*) and this builds the portable exe
 # and attaches it to a draft release, ready to write notes and publish.
@@ -18,6 +18,26 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      # The tag, the version the build stamps on itself and the version the manifest advertises are
+      # three separate files. Publishing a release that forgets one of them is exactly the mistake
+      # the update notice exists to avoid, so the release refuses to build instead.
+      - name: The tag, the build and the manifest must agree
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          $props = Select-Xml -Path Directory.Build.props -XPath '//Version'
+          $version = $props.Node.InnerText.Trim()
+          $manifest = (Get-Content manifest/markitdown-compat.json -Raw | ConvertFrom-Json).app.latestVersion
+
+          "tag                  : $tag"
+          "Directory.Build.props: $version"
+          "manifest app.latest  : $manifest"
+
+          if ($tag -ne $version -or $tag -ne $manifest) {
+            Write-Error "These have to match. Update Directory.Build.props and manifest/markitdown-compat.json, then retag."
+            exit 1
+          }
 
       - name: Test
         run: dotnet test -c Release

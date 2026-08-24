@@ -9,7 +9,6 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\favicon.ico</ApplicationIcon>
     <AssemblyName>MdPipe</AssemblyName>
-    <Version>0.4.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

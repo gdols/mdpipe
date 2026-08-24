@@ -61,6 +61,10 @@
   <data name="Scanning" xml:space="preserve"><value>Buscando en las carpetas...</value></data>
   <data name="ScanningFound" xml:space="preserve"><value>Buscando en las carpetas... {0} archivos encontrados</value></data>
   <data name="ScanCancelled" xml:space="preserve"><value>Búsqueda detenida. Se añadieron {0} archivos.</value></data>
+  <data name="UpdateAvailable" xml:space="preserve"><value>Ya está disponible MdPipe {0}. Tú tienes la {1}.</value></data>
+  <data name="UpdateCritical" xml:space="preserve"><value>Ya está disponible MdPipe {0}, y tu versión, la {1}, tiene un fallo conocido.</value></data>
+  <data name="UpdateGetIt" xml:space="preserve"><value>Descárgala</value></data>
+  <data name="UpdateDismiss" xml:space="preserve"><value>Ocultar hasta la próxima vez</value></data>
   <data name="SkippedFolderOne" xml:space="preserve"><value>Se omitió 1 carpeta sin permiso de lectura.</value></data>
   <data name="SkippedFolderMany" xml:space="preserve"><value>Se omitieron {0} carpetas sin permiso de lectura.</value></data>
   <data name="PythonMissingStatus" xml:space="preserve"><value>Falta Python. Instala Python 3.10 o superior y vuelve a abrir la aplicación.</value></data>
