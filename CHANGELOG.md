@@ -5,6 +5,15 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
+## 0.6.1
+
+- **Fixes 0.6.0, which would not open.** The window failed to build and the app showed an error
+  box instead of starting. One binding in the update bar pointed a two-way binding at a read-only
+  property, which WPF refuses at the moment the window is laid out. Nothing else was wrong with
+  0.6.0, but nothing else mattered either.
+- The windows are now built and laid out in the tests, so a release that cannot open cannot get
+  out again.
+
 ## 0.6.0
 
 - **MdPipe can update itself, if you say yes.** The notice now offers to do the work: it fetches

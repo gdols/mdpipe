@@ -10,10 +10,10 @@
   "updatedAt": "2026-08-05",
   "notes": "0.1.7 validated on real PDF, DOCX and XLSX files: output identical to 0.1.6, plus upstream fixes for PPTX charts, PPTX SVG images and Word equations.",
   "app": {
-    "latestVersion": "0.6.0",
-    "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.6.0",
-    "downloadUrl": "https://github.com/gdols/MdPipe/releases/download/v0.6.0/MdPipe.exe",
-    "criticalBelow": "",
-    "notes": "MdPipe can now update itself, and MarkItDown no longer changes without you."
+    "latestVersion": "0.6.1",
+    "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.6.1",
+    "downloadUrl": "https://github.com/gdols/MdPipe/releases/download/v0.6.1/MdPipe.exe",
+    "criticalBelow": "0.6.1",
+    "notes": "Fixes 0.6.0, which would not open."
   }
 }
