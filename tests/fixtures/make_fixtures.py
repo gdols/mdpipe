@@ -64,10 +64,17 @@ def write_pdf(path: Path) -> None:
 
 
 def _zip(path: Path, entries: dict[str, str]) -> None:
-    """Office formats are zipped XML, so building one by hand needs no library at all."""
+    """Office formats are zipped XML, so building one by hand needs no library at all.
+
+    Every entry gets the same fixed timestamp. A zip normally stores the moment each file went
+    in, which would make these come out different on every run and show up as a diff in a
+    committed file that nobody actually changed. 1980-01-01 is the earliest a zip can express.
+    """
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, text in entries.items():
-            archive.writestr(name, text)
+            entry = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            entry.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(entry, text)
 
 
 CONTENT_TYPES = """<?xml version="1.0" encoding="UTF-8"?>

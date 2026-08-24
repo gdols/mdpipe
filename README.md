@@ -86,6 +86,8 @@ everywhere else. Nothing to configure.
 - Converts several files in one batch using drag and drop. Folders work too,
   subfolders included, and a whole batch shares one engine process instead of
   starting a new one per file.
+- Stays usable while it looks through a folder, however large, telling you how
+  many files it has found and letting you stop without losing them.
 - Opens files dropped straight onto the executable, or sent to it with
   "Open with".
 - Saves the Markdown beside the original or in a chosen folder, and remembers
@@ -96,6 +98,7 @@ everywhere else. Nothing to configure.
 - Includes a CLI for scripts and automation.
 - Keeps MarkItDown on a version tested with MdPipe, and picks up newly
   validated versions on launch.
+- Says when a newer MdPipe is out, without ever replacing itself.
 
 ## CLI
 
