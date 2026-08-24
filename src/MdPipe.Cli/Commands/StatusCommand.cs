@@ -48,7 +48,7 @@ public static class StatusCommand
                 }
 
                 // Rides the manifest that was just fetched, so this costs no extra request.
-                if (appUpdates.CheckFor(manifest, RunningVersion) is { } update)
+                if (appUpdates.CheckFor(manifest.App, RunningVersion) is { } update)
                 {
                     Console.WriteLine();
                     Console.WriteLine($"  MdPipe {RunningVersion} is running; {update.Version} is out: {update.ReleaseUrl}");

@@ -96,8 +96,8 @@ everywhere else. Nothing to configure.
   be cancelled midway.
 - Runs locally without uploading documents or collecting telemetry.
 - Includes a CLI for scripts and automation.
-- Keeps MarkItDown on a version tested with MdPipe, and picks up newly
-  validated versions on launch.
+- Installs the exact MarkItDown its own release was tested against, so the engine
+  never changes without you installing a new MdPipe.
 - Says when a newer MdPipe is out, without ever replacing itself.
 
 ## CLI
@@ -132,9 +132,14 @@ The WPF application and CLI share the same conversion and setup code. MdPipe
 creates its environment under AppData and does not modify the system Python or
 `PATH`.
 
-A small [compatibility manifest](docs/version-control.md) records the MarkItDown
-versions tested with MdPipe. Setup also passes the Windows proxy to pip and keeps
-its output visible when a firewall, proxy or SSL inspection blocks the download.
+Each release of MdPipe is an application and a MarkItDown version that were tested
+together, and the executable carries the record of which one it wants. Nothing
+changes the engine underneath you: a new MarkItDown arrives when a new MdPipe
+does, and not before. There is a
+[longer explanation](docs/version-control.md) of how that is arranged.
+
+Setup also passes the Windows proxy to pip and keeps its output visible when a
+firewall, proxy or SSL inspection blocks the download.
 
 There is a longer write-up with code samples on
 [gdols.dev](https://gdols.dev/blog/como-hice-mdpipe/).

@@ -1,4 +1,4 @@
-using MdPipe.Core.Models;
+﻿using MdPipe.Core.Models;
 
 namespace MdPipe.Core.Services;
 
@@ -18,9 +18,9 @@ public sealed class AppUpdateService(VersionGateService versions)
     /// What to tell the user, or null when there is nothing worth saying.
     /// </summary>
     /// <param name="runningVersion">The version of the executable doing the asking.</param>
-    public AppUpdate? CheckFor(CompatibilityManifest manifest, string? runningVersion)
+    public AppUpdate? CheckFor(AppRelease? release, string? runningVersion)
     {
-        if (manifest.App is not { } release) return null;
+        if (release is null) return null;
         if (string.IsNullOrWhiteSpace(runningVersion)) return null;
 
         // Unparseable on either side means "no idea", and a notice nobody can act on sensibly is

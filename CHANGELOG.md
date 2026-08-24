@@ -5,6 +5,13 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
+## Unreleased
+
+- **The engine no longer changes on its own.** Each release of MdPipe now installs the exact
+  MarkItDown version it was tested with, taken from the executable rather than fetched from the
+  repository. A new engine arrives when a new MdPipe does. Setting it up also stopped depending
+  on GitHub being reachable.
+
 ## 0.5.0
 
 - **Dropping a folder no longer freezes the window.** The scan used to walk the whole tree on

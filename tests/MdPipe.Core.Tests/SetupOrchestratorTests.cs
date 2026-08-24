@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
@@ -10,8 +11,10 @@ public class SetupOrchestratorTests
 {
     private readonly FakeEnvironmentManager _environment = new();
 
-    private SetupOrchestrator BuildSut(CompatibilityManifest manifest) => new(
-        new FakeManifestProvider(manifest),
+    /// <summary>The release this build claims to be paired with, which is what decides everything.</summary>
+    private SetupOrchestrator BuildSut(CompatibilityManifest build, AppRelease? announced = null) => new(
+        new FakeBuildManifest(build),
+        new FakeManifestProvider(new CompatibilityManifest { App = announced }),
         _environment,
         new VersionGateService(),
         NullLogger<SetupOrchestrator>.Instance);
@@ -110,17 +113,97 @@ public class SetupOrchestratorTests
     }
 
     [Fact]
-    public async Task RunAsync_WhenVersionsCannotBeCompared_StaysOnTheInstalledOne()
+    public async Task RunAsync_WhenTheEngineIsNotTheOneThisBuildPins_ReplacesIt()
     {
-        // If we can't reason about the versions, a compatible install should be left alone
-        // (and the orchestrator logs a warning) rather than reinstalled on every launch.
+        // An engine nobody can identify is not the one this release was tested against, so it goes.
         _environment.Info = Ready("weird-build");
 
         var result = await BuildSut(BuildManifest("0.1.7", "weird-build", "0.1.7")).RunAsync();
 
+        result.WasInstalled.Should().BeTrue();
+        result.Version.Should().Be("0.1.7");
+        _environment.SetupCalls.Should().ContainSingle().Which.Version.Should().Be("0.1.7");
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenTheEngineReportsItselfSlightlyDifferently_LeavesItAlone()
+    {
+        // "0.1.7" pinned and "0.1.7.0" reported is the same engine. Treating it as a mismatch would
+        // reinstall several hundred megabytes on every single launch, forever.
+        _environment.Info = Ready("0.1.7.0");
+
+        var result = await BuildSut(BuildManifest("0.1.7", "0.1.7")).RunAsync();
+
         result.WasInstalled.Should().BeFalse();
-        result.Version.Should().Be("weird-build");
         _environment.SetupCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RunAsync_TwiceInARow_OnlyInstallsOnce()
+    {
+        // The guard against the loop above, from the other side: once the pinned engine is in, a
+        // second launch has nothing to do.
+        _environment.Info = new PythonEnvironmentInfo { IsReady = false, MissingReason = "not set up" };
+        var sut = BuildSut(BuildManifest("0.1.7", "0.1.7"));
+
+        await sut.RunAsync();
+        var second = await sut.RunAsync();
+
+        second.WasInstalled.Should().BeFalse();
+        _environment.SetupCalls.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task RunAsync_IgnoresWhatTheRepositoryWantsForTheEngine()
+    {
+        // The point of the whole arrangement. Editing the manifest in the repository must not be
+        // able to swap the engine underneath somebody: a release is an application and a MarkItDown
+        // that were tried together, and only a new release changes that pairing.
+        _environment.Info = Ready("0.1.7");
+
+        var sut = new SetupOrchestrator(
+            new FakeBuildManifest(BuildManifest("0.1.7", "0.1.7")),
+            new FakeManifestProvider(BuildManifest("0.1.5", "0.1.5")),
+            _environment,
+            new VersionGateService(),
+            NullLogger<SetupOrchestrator>.Instance);
+
+        var result = await sut.RunAsync();
+
+        result.Version.Should().Be("0.1.7");
+        _environment.SetupCalls.Should().BeEmpty("the repository does not get a say in this");
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenTheRepositoryIsUnreachable_StillSetsUpTheEngine()
+    {
+        // The remote manifest is now advisory, so losing it costs the update notice and nothing else.
+        // It used to decide what got installed, which made a broken network a broken setup.
+        _environment.Info = new PythonEnvironmentInfo { IsReady = false, MissingReason = "not set up" };
+
+        var sut = new SetupOrchestrator(
+            new FakeBuildManifest(BuildManifest("0.1.7", "0.1.7")),
+            new UnreachableManifest(),
+            _environment,
+            new VersionGateService(),
+            NullLogger<SetupOrchestrator>.Instance);
+
+        var result = await sut.RunAsync();
+
+        result.WasInstalled.Should().BeTrue();
+        result.Version.Should().Be("0.1.7");
+        result.App.Should().BeNull("there was nowhere to learn about a newer MdPipe");
+    }
+
+    [Fact]
+    public async Task RunAsync_HandsBackWhatTheRepositorySaysAboutNewerReleases()
+    {
+        _environment.Info = Ready("0.1.7");
+        var announced = new AppRelease("9.9.9", "https://example.invalid/r");
+
+        var result = await BuildSut(BuildManifest("0.1.7", "0.1.7"), announced).RunAsync();
+
+        result.App.Should().Be(announced);
     }
 
     [Fact]
@@ -177,6 +260,19 @@ public class SetupOrchestratorTests
         InstalledMarkItDownVersion = version
     };
 
+    /// <summary>Stands in for GitHub being unreachable.</summary>
+    private sealed class UnreachableManifest : IManifestProvider
+    {
+        public Task<CompatibilityManifest> GetManifestAsync(CancellationToken cancellationToken = default) =>
+            throw new ManifestException("no route to host");
+    }
+
+    private sealed class FakeBuildManifest(CompatibilityManifest manifest) : IBuildManifestProvider
+    {
+        public Task<CompatibilityManifest> GetManifestAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(manifest);
+    }
+
     private sealed class FakeManifestProvider(CompatibilityManifest manifest) : IManifestProvider
     {
         public Task<CompatibilityManifest> GetManifestAsync(CancellationToken cancellationToken = default) =>
@@ -194,6 +290,15 @@ public class SetupOrchestratorTests
         public Task SetupAsync(string markItDownVersion, bool forceReinstall = false, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
         {
             SetupCalls.Add((markItDownVersion, forceReinstall));
+
+            // Installing actually changes what is installed. Without this the fake would happily let
+            // a reinstall loop pass its tests, which is the one bug worth catching here.
+            Info = new PythonEnvironmentInfo
+            {
+                IsReady = true,
+                PythonExecutable = @"C:\fake\python.exe",
+                InstalledMarkItDownVersion = markItDownVersion
+            };
             return Task.CompletedTask;
         }
 
