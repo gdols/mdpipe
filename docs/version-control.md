@@ -26,8 +26,8 @@ The manifest looks like this:
   "updatedAt": "2026-08-05",
   "notes": "Validated on real PDF, DOCX and XLSX files",
   "app": {
-    "latestVersion": "0.4.0",
-    "releaseUrl": "https://github.com/gdols/MdPipe/releases/latest",
+    "latestVersion": "0.5.0",
+    "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.5.0",
     "criticalBelow": "",
     "notes": ""
   }
@@ -100,14 +100,40 @@ csproj embeds the repository manifest at build time, so there is a single source
 
 ### 4. Updating the manifest
 
-Only the repository owner (you) can advance the validated set. The workflow is:
+Only the repository owner can advance the validated set, and users will **never** get an
+untested MarkItDown through `pip install --upgrade`.
 
-1. Install and test a new MarkItDown version manually.
-2. Update `manifest/markitdown-compat.json`: add the version to `compatibleVersions`
-   and optionally advance `stableVersion`.
-3. Commit and push. Users get the update automatically within 24 hours.
+Noticing that there is something to validate used to be a matter of remembering to look, which
+is how the format list drifted once already. `.github/workflows/markitdown-watch.yml` now does
+it every Monday:
 
-This means users will **never** get an untested MarkItDown update via `pip install --upgrade`.
+1. It compares PyPI against `compatibleVersions`.
+2. If there is a version MdPipe has not validated, it installs that version and the current one
+   side by side, converts everything in `tests/fixtures/` with both, compares the format lists
+   the two report, and opens an issue with the differences.
+3. It opens **one** issue per version. A second run while that issue is open says so and stops,
+   rather than filing a duplicate every week.
+
+It never edits the manifest. Accepting a version is still a decision:
+
+1. Read the issue. A clean diff means the output did not change for those documents.
+2. Add the version to `compatibleVersions` in `manifest/markitdown-compat.json`, and move
+   `stableVersion` up if you want everyone on it.
+3. Commit and push. Installed copies pick it up within a day, because that is how long the
+   manifest is cached.
+
+To reject one, say why in the issue and close it. That way the refusal is on the record too.
+
+You can see the report without waiting for Monday: run the workflow by hand with
+`pretend_current` set to an older version, or locally with
+
+```bash
+python .github/scripts/check_markitdown.py --pretend-current 0.1.6
+```
+
+The sample documents it converts are built by `tests/fixtures/make_fixtures.py`, from the
+standard library alone, so they are neither unexplained binaries nor dependent on what happens
+to be installed.
 
 ### 5. Releasing a new MdPipe
 
@@ -116,8 +142,15 @@ and the CLI inherit. Releasing means:
 
 1. Bump `<Version>` in `Directory.Build.props`.
 2. Set `app.latestVersion` in the manifest to the same number, with a `releaseUrl` pointing at
-   the tag and a `notes` line saying what changed.
-3. Merge, then tag `vX.Y.Z`.
+   the tag and a `notes` line saying what changed. Write that line for the person who will read
+   it in the app, and put the same thing at the top of `CHANGELOG.md`.
+3. Merge, tag `vX.Y.Z`, push the tag.
+4. The workflow builds the executable and attaches it to a **draft** release. Write the notes
+   and publish it.
+
+**Do not merge step 2 ahead of the tag.** `app.latestVersion` is what every installed copy
+reads within a day, so landing it before the release exists points all of them at a page that
+is not there yet. Bump and tag close together.
 
 The release workflow refuses to build unless the tag, `<Version>` and `app.latestVersion` all
 agree, so it is not possible to publish a release that forgets to tell anyone about itself.
