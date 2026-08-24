@@ -51,13 +51,23 @@ public static class ConvertCommand
             var recursive = parseResult.GetValue(recursiveOpt);
             var allFiles = parseResult.GetValue(allFilesOpt);
 
-            var resolution = inputResolver.Resolve(inputs, recursive, allFiles);
+            // Off the calling thread so Ctrl+C is answered while a big tree is still being walked.
+            var resolution = await Task.Run(
+                () => inputResolver.Resolve(inputs, recursive, allFiles, progress: null, cancellationToken),
+                cancellationToken);
 
             foreach (var missing in resolution.NotFound)
                 Console.Error.WriteLine($"Nothing to convert at: {missing}");
 
             foreach (var blocked in resolution.Unreadable)
                 Console.Error.WriteLine($"Skipped (no permission to read): {blocked}");
+
+            // Converting whatever a half-finished scan happened to reach is not what Ctrl+C means.
+            if (resolution.Cancelled)
+            {
+                Console.Error.WriteLine("Cancelled while looking for files. Nothing was converted.");
+                return 1;
+            }
 
             if (resolution.Files.Count == 0)
                 return 1;

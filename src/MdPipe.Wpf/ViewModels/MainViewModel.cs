@@ -20,9 +20,13 @@ public sealed class MainViewModel : ObservableObject
     private bool _isBusy;
     private bool _isReady;
     private bool _isConverting;
+    private bool _isScanning;
     private string _statusMessage = Strings.Starting;
     private string? _outputFolder;
     private CancellationTokenSource? _convertCts;
+    private CancellationTokenSource? _scanCts;
+    private int _activeScans;
+    private string _statusBeforeScan = string.Empty;
     private readonly UserSettings _settings;
     private readonly InputResolver _inputResolver;
     private readonly FormatCatalogProvider _formats;
@@ -53,7 +57,14 @@ public sealed class MainViewModel : ObservableObject
         OpenOutputFolderCommand = new RelayCommand(OpenOutputFolder, () => HasConvertedFiles);
         ChooseOutputFolderCommand = new RelayCommand(ChooseOutputFolder, () => !IsBusy);
         ReinstallCommand = new RelayCommand(async () => await ReinstallAsync(), () => !IsBusy);
-        CancelCommand = new RelayCommand(() => _convertCts?.Cancel(), () => IsConverting);
+        // One button for both waits: whichever of the two is running is the one the user is staring at.
+        CancelCommand = new RelayCommand(
+            () =>
+            {
+                _convertCts?.Cancel();
+                _scanCts?.Cancel();
+            },
+            () => CanCancel);
 
         if (!string.IsNullOrEmpty(_settings.OutputFolder) && Directory.Exists(_settings.OutputFolder))
             _outputFolder = _settings.OutputFolder;
@@ -74,9 +85,31 @@ public sealed class MainViewModel : ObservableObject
         private set
         {
             if (SetProperty(ref _isConverting, value))
+            {
+                OnPropertyChanged(nameof(CanCancel));
                 CommandManagerRefresh();
+            }
         }
     }
+
+    /// <summary>
+    /// A folder is being walked. Separate from <see cref="IsConverting"/> because the two overlap in
+    /// nothing except needing a way out: scanning a network share can take longer than the conversion.
+    /// </summary>
+    public bool IsScanning
+    {
+        get => _isScanning;
+        private set
+        {
+            if (SetProperty(ref _isScanning, value))
+            {
+                OnPropertyChanged(nameof(CanCancel));
+                CommandManagerRefresh();
+            }
+        }
+    }
+
+    public bool CanCancel => IsConverting || IsScanning;
 
     public bool IsBusy
     {
@@ -210,25 +243,94 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public void AddFiles(IEnumerable<string> paths)
+    /// <summary>
+    /// Expands what was dropped and adds the documents to the list.
+    /// </summary>
+    /// <remarks>
+    /// The walk runs off the UI thread. It used to run on it, which meant dropping a large folder, a
+    /// network share or a OneDrive folder full of files that aren't downloaded yet froze the window
+    /// with no progress and no way out.
+    /// <para>
+    /// Only a conversion blocks this. Preparing the environment no longer does: the first run spends
+    /// minutes downloading Python, and a drop during that used to be discarded without a word.
+    /// </para>
+    /// </remarks>
+    public async Task AddFilesAsync(IEnumerable<string> paths)
     {
-        if (IsBusy) return;
+        if (IsConverting) return;
 
+        // A drop while another scan is running joins it and shares its cancellation; a drop with
+        // nothing running always starts from a fresh token, so cancelling once doesn't poison the next.
+        if (_activeScans == 0)
+        {
+            _scanCts?.Dispose();
+            _scanCts = new CancellationTokenSource();
+            _statusBeforeScan = StatusMessage;
+        }
+
+        var token = _scanCts!.Token;
+        _activeScans++;
+        IsScanning = true;
+
+        InputResolution resolution;
+        try
+        {
+            var progress = new Progress<int>(found =>
+                StatusMessage = found == 0 ? Strings.Scanning : string.Format(Strings.ScanningFound, found));
+
+            resolution = await Task.Run(
+                () => _inputResolver.Resolve(paths, recursive: true, IncludeEverything, progress, token), token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelled before the walk even started. Resolve itself returns partial results instead
+            // of throwing, so this only covers the race at the very beginning.
+            resolution = new InputResolution([], [], [], Cancelled: true);
+        }
+        finally
+        {
+            if (--_activeScans == 0)
+            {
+                IsScanning = false;
+                _scanCts?.Dispose();
+                _scanCts = null;
+            }
+        }
+
+        // Built here rather than before the walk: two folders dropped in quick succession scan at the
+        // same time, and the second one has to see what the first one already added.
         var existing = Files.Select(f => f.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var resolution = _inputResolver.Resolve(paths, recursive: true, includeEverything: IncludeEverything);
+        var added = 0;
 
         foreach (var file in resolution.Files)
         {
-            if (existing.Add(file))
-                Files.Add(new FileItemViewModel(file));
+            if (!existing.Add(file)) continue;
+            Files.Add(new FileItemViewModel(file));
+            added++;
         }
+
+        StatusMessage = Summarize(resolution, added, _statusBeforeScan);
+    }
+
+    /// <summary>
+    /// What the status bar says once a scan finishes. Anything the user needs to know wins over the
+    /// message that was there before; otherwise the previous one comes back, because "Ready" is more
+    /// useful to look at than a stale count.
+    /// </summary>
+    private static string Summarize(InputResolution resolution, int added, string previous)
+    {
+        // A cancelled scan found whatever it found. Saying so beats leaving a count that stopped moving.
+        if (resolution.Cancelled)
+            return string.Format(Strings.ScanCancelled, added);
 
         // Folders we couldn't open would otherwise vanish without a trace, and a partial list of files
         // looks exactly like a complete one.
         if (resolution.Unreadable.Count > 0)
-            StatusMessage = resolution.Unreadable.Count == 1
+            return resolution.Unreadable.Count == 1
                 ? Strings.SkippedFolderOne
                 : string.Format(Strings.SkippedFolderMany, resolution.Unreadable.Count);
+
+        return previous;
     }
 
     private async Task ConvertAllAsync()

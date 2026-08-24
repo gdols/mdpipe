@@ -73,7 +73,7 @@ public sealed class MainViewModelTests : IDisposable
     public async Task Converting_MarksEveryFileDone()
     {
         var vm = BuildSut();
-        vm.AddFiles([CreateFile("a.pdf"), CreateFile("b.docx")]);
+        await vm.AddFilesAsync([CreateFile("a.pdf"), CreateFile("b.docx")]);
 
         await ConvertAndWait(vm);
 
@@ -86,7 +86,7 @@ public sealed class MainViewModelTests : IDisposable
     {
         _converter.FailFor.Add("bad.xlsx");
         var vm = BuildSut();
-        vm.AddFiles([CreateFile("a.pdf"), CreateFile("bad.xlsx"), CreateFile("c.docx")]);
+        await vm.AddFilesAsync([CreateFile("a.pdf"), CreateFile("bad.xlsx"), CreateFile("c.docx")]);
 
         await ConvertAndWait(vm);
 
@@ -100,7 +100,7 @@ public sealed class MainViewModelTests : IDisposable
     {
         var vm = BuildSut();
         vm.OutputFolder = Path.Combine(_dir, "out");
-        vm.AddFiles([CreateFile("2025/report.pdf"), CreateFile("2026/report.pdf")]);
+        await vm.AddFilesAsync([CreateFile("2025/report.pdf"), CreateFile("2026/report.pdf")]);
 
         await ConvertAndWait(vm);
 
@@ -114,7 +114,7 @@ public sealed class MainViewModelTests : IDisposable
     {
         _converter.PauseBefore = "slow.pdf";
         var vm = BuildSut();
-        vm.AddFiles([CreateFile("a.pdf"), CreateFile("slow.pdf"), CreateFile("c.pdf")]);
+        await vm.AddFilesAsync([CreateFile("a.pdf"), CreateFile("slow.pdf"), CreateFile("c.pdf")]);
 
         vm.ConvertCommand.Execute(null);
         for (var i = 0; i < 200 && !_converter.Paused; i++) await Task.Delay(10);
@@ -127,24 +127,60 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void AddingAPathThatIsNotThere_AddsNothing()
+    public async Task FilesDroppedWhileTheEnvironmentPrepares_StillGetAdded()
+    {
+        // The first run spends minutes downloading Python and MarkItDown. A drop during that used to
+        // hit an IsBusy guard and vanish without a message, which is the worst possible answer.
+        _environment.Gate = new TaskCompletionSource();
+        var vm = BuildSut();
+        var preparing = vm.InitializeAsync();
+        vm.IsBusy.Should().BeTrue("the environment is still being prepared");
+
+        await vm.AddFilesAsync([CreateFile("dropped.pdf")]);
+
+        vm.Files.Select(f => Path.GetFileName(f.SourcePath)).Should().BeEquivalentTo(["dropped.pdf"]);
+
+        _environment.Gate.SetResult();
+        await preparing;
+    }
+
+    [Fact]
+    public async Task FilesDroppedDuringAConversion_AreIgnored()
+    {
+        // The one case that still has to be refused: the batch already knows what it is converting.
+        _converter.PauseBefore = "slow.pdf";
+        var vm = BuildSut();
+        await vm.AddFilesAsync([CreateFile("slow.pdf")]);
+        vm.ConvertCommand.Execute(null);
+        for (var i = 0; i < 200 && !_converter.Paused; i++) await Task.Delay(10);
+
+        await vm.AddFilesAsync([CreateFile("late.pdf")]);
+
+        vm.Files.Should().NotContain(f => Path.GetFileName(f.SourcePath) == "late.pdf");
+
+        _converter.Release();
+        for (var i = 0; i < 200 && vm.IsBusy; i++) await Task.Delay(10);
+    }
+
+    [Fact]
+    public async Task AddingAPathThatIsNotThere_AddsNothing()
     {
         var vm = BuildSut();
 
-        vm.AddFiles([Path.Combine(_dir, "definitely-not-here")]);
+        await vm.AddFilesAsync([Path.Combine(_dir, "definitely-not-here")]);
 
         vm.Files.Should().BeEmpty();
     }
 
     [Fact]
-    public void AddingAFolder_TakesTheConvertibleFilesAndLeavesTheRest()
+    public async Task AddingAFolder_TakesTheConvertibleFilesAndLeavesTheRest()
     {
         var vm = BuildSut();
         CreateFile("drop/report.pdf");
         CreateFile("drop/notes.md");        // would convert onto itself
         CreateFile("drop/program.exe");
 
-        vm.AddFiles([Path.Combine(_dir, "drop")]);
+        await vm.AddFilesAsync([Path.Combine(_dir, "drop")]);
 
         vm.Files.Select(f => Path.GetFileName(f.SourcePath)).Should().BeEquivalentTo(["report.pdf"]);
     }
@@ -228,14 +264,21 @@ public sealed class MainViewModelTests : IDisposable
     {
         public Exception? ThrowOnSetup { get; set; }
 
-        public Task<PythonEnvironmentInfo> GetEnvironmentInfoAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(new PythonEnvironmentInfo
+        /// <summary>Holds the environment check open so a test can act while the app is busy.</summary>
+        public TaskCompletionSource? Gate { get; set; }
+
+        public async Task<PythonEnvironmentInfo> GetEnvironmentInfoAsync(CancellationToken cancellationToken = default)
+        {
+            if (Gate is not null) await Gate.Task;
+
+            return new PythonEnvironmentInfo
             {
                 IsReady = ThrowOnSetup is null,
                 PythonExecutable = @"C:\fake\python.exe",
                 InstalledMarkItDownVersion = ThrowOnSetup is null ? "0.1.7" : null,
                 MissingReason = ThrowOnSetup is null ? null : "not set up"
-            });
+            };
+        }
 
         public Task SetupAsync(string markItDownVersion, bool forceReinstall = false, IProgress<string>? progress = null, CancellationToken cancellationToken = default) =>
             ThrowOnSetup is not null ? Task.FromException(ThrowOnSetup) : Task.CompletedTask;

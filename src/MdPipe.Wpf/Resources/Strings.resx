@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -58,6 +58,9 @@
   <data name="CancelledCount" xml:space="preserve"><value>Cancelled · {0} file(s) converted so far</value></data>
   <data name="FinishedWithWarnings" xml:space="preserve"><value>Finished with warnings · {0}/{1} converted</value></data>
   <data name="RenamedNote" xml:space="preserve"><value> · {0} renamed to avoid overwriting</value></data>
+  <data name="Scanning" xml:space="preserve"><value>Looking through folders...</value></data>
+  <data name="ScanningFound" xml:space="preserve"><value>Looking through folders... {0} files found</value></data>
+  <data name="ScanCancelled" xml:space="preserve"><value>Search stopped. {0} files were added.</value></data>
   <data name="SkippedFolderOne" xml:space="preserve"><value>Skipped 1 folder you do not have permission to read.</value></data>
   <data name="SkippedFolderMany" xml:space="preserve"><value>Skipped {0} folders you do not have permission to read.</value></data>
   <data name="PythonMissingStatus" xml:space="preserve"><value>Python is missing. Install Python 3.10 or later and reopen the app.</value></data>

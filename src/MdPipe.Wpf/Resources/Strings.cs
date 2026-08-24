@@ -101,6 +101,15 @@ public static class Strings
     /// <summary>· {0} renamed to avoid overwriting</summary>
     public static string RenamedNote => Get("RenamedNote");
 
+    /// <summary>Looking through folders...</summary>
+    public static string Scanning => Get("Scanning");
+
+    /// <summary>Looking through folders... {0} files found</summary>
+    public static string ScanningFound => Get("ScanningFound");
+
+    /// <summary>Search stopped. {0} files were added.</summary>
+    public static string ScanCancelled => Get("ScanCancelled");
+
     /// <summary>Skipped 1 folder you do not have permission to read.</summary>
     public static string SkippedFolderOne => Get("SkippedFolderOne");
 
