@@ -172,16 +172,11 @@ It never edits the manifest. Accepting a version is still a decision:
 
 1. Read the issue. A clean diff means the output did not change for those documents.
 2. Add the version to `compatibleVersions` in `manifest/markitdown-compat.json`, and move
-   `stableVersion` up if you want everyone on it.
-3. Commit and push. Installed copies pick it up within a day, because that is how long the
-   manifest is cached.
+   `stableVersion` up.
+3. Commit and push. That changes what the **next build** installs. Nobody's machine changes
+   until they install an MdPipe carrying it, which is the whole point of the arrangement.
 
 To reject one, say why in the issue and close it. That way the refusal is on the record too.
-
-Note what accepting does and does not do. Editing the manifest records that a version is
-validated and changes what **future builds** install. It does not touch anyone's machine. Moving
-people onto it means releasing an MdPipe that carries it, which is the point: the two versions
-travel together and you decide when.
 
 You can see the report without waiting for Monday: run the workflow by hand with
 `pretend_current` set to an older version, or locally with

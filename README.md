@@ -31,8 +31,10 @@ downloads a private Python environment and MarkItDown into `%APPDATA%\mdpipe`;
 later conversions work offline. Because the executable is not code-signed yet,
 Windows SmartScreen may ask you to confirm that you want to run it.
 
-MdPipe tells you when a newer version is out. It never replaces itself, it just
-says so and links to the release.
+When a newer version comes out, MdPipe says so and offers to fetch it: it
+downloads the new one, checks it is the right file and restarts into it. It asks
+first, every time, and where it cannot write to its own folder, on a memory stick
+or under Program Files, it opens the download page instead.
 
 <p align="center">
   <img src="assets/screenshots/app-main.png" alt="MdPipe desktop app" width="720">
@@ -98,7 +100,7 @@ everywhere else. Nothing to configure.
 - Includes a CLI for scripts and automation.
 - Installs the exact MarkItDown its own release was tested against, so the engine
   never changes without you installing a new MdPipe.
-- Says when a newer MdPipe is out, without ever replacing itself.
+- Updates itself when a newer version is out, after asking, and never otherwise.
 
 ## CLI
 
