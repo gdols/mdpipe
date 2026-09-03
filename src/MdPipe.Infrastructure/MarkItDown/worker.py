@@ -48,10 +48,18 @@ def one_line(exc):
 def describe_formats():
     """Report what this MarkItDown build can read.
 
-    The extensions live in module-level constants next to each converter, but the names are not
-    consistent: most modules use ACCEPTED_FILE_EXTENSIONS while the spreadsheet one uses
-    ACCEPTED_XLSX_FILE_EXTENSIONS and ACCEPTED_XLS_FILE_EXTENSIONS. Matching on the suffix instead of
-    an exact name is what keeps .xls and .xlsx from silently going missing.
+    Two things here are held together with tape, and both are deliberate.
+
+    MarkItDown offers no public way to list its converters, so this reaches for the private
+    _converters. And the extensions live in module-level constants whose names are not consistent:
+    most modules use ACCEPTED_FILE_EXTENSIONS while the spreadsheet ones use
+    ACCEPTED_XLSX_FILE_EXTENSIONS and ACCEPTED_XLS_FILE_EXTENSIONS, so matching on the suffix rather
+    than an exact name is what keeps .xls and .xlsx from silently going missing.
+
+    Either of those can be broken by a MarkItDown release without anything else noticing, which is
+    why an empty answer is reported as a failure rather than as a catalogue with nothing in it. A
+    caller that receives "no formats" cannot tell a broken engine from an honest zero; one that
+    receives an error can, and keeps whatever it already knew.
     """
     from markitdown import MarkItDown
 
@@ -61,8 +69,14 @@ def describe_formats():
     except Exception:  # noqa: BLE001 - the version is nice to have, not essential
         engine = "unknown"
 
+    try:
+        registrations = MarkItDown()._converters
+    except AttributeError as exc:
+        emit({"error": f"This MarkItDown does not expose its converters the way MdPipe reads them: {exc}"})
+        return 1
+
     converters, every = [], set()
-    for registration in MarkItDown()._converters:
+    for registration in registrations:
         converter = registration.converter
         module = sys.modules.get(type(converter).__module__)
         found = set()
@@ -78,7 +92,14 @@ def describe_formats():
             converters.append({"name": type(converter).__name__, "extensions": sorted(found)})
             every.update(found)
 
+    if not every:
+        emit({"error": (
+            f"MarkItDown {engine} reported {len(registrations)} converters and not one readable "
+            "extension, so the way MdPipe reads them has probably stopped working.")})
+        return 1
+
     emit({"engineVersion": engine, "extensions": sorted(every), "converters": converters})
+    return 0
 
 
 def main():
@@ -94,8 +115,7 @@ def main():
         return 1
 
     if "--formats" in sys.argv:
-        describe_formats()
-        return 0
+        return describe_formats()
 
     converter = MarkItDown()
 

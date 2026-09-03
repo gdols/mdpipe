@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
+using System.Text.Json;
 using System.Runtime.InteropServices;
 using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
@@ -9,25 +10,45 @@ using Microsoft.Extensions.Logging;
 
 namespace MdPipe.Infrastructure.Python;
 
-public sealed class PythonEnvironmentManager(
-    ILogger<PythonEnvironmentManager> logger,
-    IHttpClientFactory httpClientFactory) : IPythonEnvironmentManager, IConversionWorkerSource
+public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConversionWorkerSource
 {
     private const string EmbeddedPythonVersion = "3.12.7";
 
-    private static readonly string Root = Path.Combine(
+    private static readonly string DefaultRoot = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mdpipe");
 
-    private static readonly string VenvRoot = Path.Combine(Root, "venv");
-    private static readonly string EmbedRoot = Path.Combine(Root, "python");
+    private readonly ILogger<PythonEnvironmentManager> logger;
+    private readonly IHttpClientFactory httpClientFactory;
 
-    private static string VenvPython => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+    /// <param name="root">The folder MdPipe keeps its environment in. Overridable so tests can work
+    /// against a throwaway directory rather than the real one under AppData, which is where every
+    /// field bug in this file has come from and the last place a test should be poking.</param>
+    public PythonEnvironmentManager(
+        ILogger<PythonEnvironmentManager> logger,
+        IHttpClientFactory httpClientFactory,
+        string? root = null)
+    {
+        this.logger = logger;
+        this.httpClientFactory = httpClientFactory;
+        Root = root ?? DefaultRoot;
+    }
+
+    private string Root { get; }
+
+    private string VenvRoot => Path.Combine(Root, "venv");
+    private string EmbedRoot => Path.Combine(Root, "python");
+
+    private string VenvPython => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
         ? Path.Combine(VenvRoot, "Scripts", "python.exe")
         : Path.Combine(VenvRoot, "bin", "python");
 
-    private static string EmbedPython => Path.Combine(EmbedRoot, "python.exe");
+    private string EmbedPython => Path.Combine(EmbedRoot, "python.exe");
 
-    private static string? ReadyPython =>
+    /// <summary>
+    /// The interpreter to use: the virtual environment built on a system Python when there is one,
+    /// otherwise the embeddable Python MdPipe downloaded for itself.
+    /// </summary>
+    private string? ReadyPython =>
         File.Exists(VenvPython) ? VenvPython :
         File.Exists(EmbedPython) ? EmbedPython : null;
 
@@ -98,7 +119,7 @@ public sealed class PythonEnvironmentManager(
     public string? PythonExecutable => ReadyPython;
 
     private const string WorkerResourceName = "MdPipe.Infrastructure.Resources.worker.py";
-    private static string WorkerScript => Path.Combine(Root, "worker.py");
+    private string WorkerScript => Path.Combine(Root, "worker.py");
 
     /// <summary>
     /// Drops the bundled conversion worker next to the environment and returns its path, rewriting it
@@ -119,7 +140,7 @@ public sealed class PythonEnvironmentManager(
         return WorkerScript;
     }
 
-    private static string FormatCatalogPath => Path.Combine(Root, "formats.json");
+    private string FormatCatalogPath => Path.Combine(Root, "formats.json");
 
     /// <summary>
     /// Asks MarkItDown what it can read and stores the answer, so MdPipe reports the truth about this
@@ -149,15 +170,27 @@ public sealed class PythonEnvironmentManager(
             var json = await RunProcessAsync(
                 pythonExe, $"\"{EnsureWorkerScript()}\" --formats", cancellationToken, captureOutput: true);
 
-            var line = json.Split('\n').FirstOrDefault(l => l.TrimStart().StartsWith('{'));
+            var line = json.Split('\n').FirstOrDefault(l => l.TrimStart().StartsWith('{'))?.Trim();
             if (string.IsNullOrWhiteSpace(line))
             {
-                logger.LogWarning("The engine did not report its formats; the bundled list stays in use.");
+                logger.LogWarning("The engine did not report its formats; the list already recorded stays in use.");
+                return;
+            }
+
+            // A reply with no formats in it is a broken discovery, not an engine that reads nothing.
+            // Writing it would replace a good catalogue with an empty one and quietly drop the app
+            // back to the list compiled into the build, with the window then reporting formats this
+            // machine may not actually have. Keeping what is already there is the safer wrong answer.
+            if (!DescribesFormats(line, out var complaint))
+            {
+                logger.LogWarning(
+                    "The engine could not say what it reads, so the list already recorded stays in use. {Reason}",
+                    complaint);
                 return;
             }
 
             Directory.CreateDirectory(Root);
-            await File.WriteAllTextAsync(FormatCatalogPath, line.Trim(), cancellationToken);
+            await File.WriteAllTextAsync(FormatCatalogPath, line, cancellationToken);
             logger.LogInformation("Recorded the engine's supported formats at {Path}", FormatCatalogPath);
         }
         catch (Exception ex) when (ex is PythonEnvironmentException or IOException or UnauthorizedAccessException)
@@ -308,7 +341,7 @@ public sealed class PythonEnvironmentManager(
         }
     }
 
-    private void EnableEmbeddedSitePackages()
+    internal void EnableEmbeddedSitePackages()
     {
         var pth = Directory.GetFiles(EmbedRoot, "python*._pth").FirstOrDefault();
         if (pth is null)
@@ -330,6 +363,46 @@ public sealed class PythonEnvironmentManager(
             lines.Add("import site");
 
         File.WriteAllLines(pth, lines);
+    }
+
+    /// <summary>
+    /// Whether the worker's reply is a usable catalogue.
+    /// </summary>
+    /// <remarks>
+    /// Discovery reaches into MarkItDown's private converter list, because it offers no public way
+    /// to ask. That can stop working in any release without anything else breaking, so the worker
+    /// says so outright and this is where that is believed rather than written to disk.
+    /// </remarks>
+    internal static bool DescribesFormats(string json, out string complaint)
+    {
+        complaint = string.Empty;
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("error", out var error))
+            {
+                complaint = error.GetString() ?? "The engine reported an error without saying what.";
+                return false;
+            }
+
+            if (!root.TryGetProperty("extensions", out var extensions) ||
+                extensions.ValueKind != JsonValueKind.Array ||
+                extensions.GetArrayLength() == 0)
+            {
+                complaint = "The reply contained no formats at all.";
+                return false;
+            }
+
+            return true;
+        }
+        catch (JsonException ex)
+        {
+            complaint = $"The reply could not be read: {ex.Message}";
+            return false;
+        }
     }
 
     /// <summary>
@@ -421,7 +494,7 @@ public sealed class PythonEnvironmentManager(
         }
     }
 
-    private void TryDeleteDir(string dir)
+    internal void TryDeleteDir(string dir)
     {
         try
         {
