@@ -5,6 +5,24 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
+## 0.7.0
+
+Nothing here changes what MdPipe does. It is the round after shipping a release that would not
+open, and it is all about that not happening again.
+
+- **A release that cannot open can no longer be published.** The release now starts the executable
+  it just built and waits for its window, before anything is attached to it.
+- **The conversion engine is tested.** It had six tests and all six covered a helper that trims a
+  string; what a worker dying halfway through a batch does was taken on trust. Twelve tests now
+  cover it, driven by a worker that misbehaves on request.
+- **The environment manager is tested**, for the first time. It is the file every failure reported
+  from other people's machines has come out of.
+- **A broken format discovery no longer passes for an empty one.** MarkItDown offers no supported
+  way to list what it reads, so MdPipe reaches for an internal detail that any release could
+  change. That failure used to be silent and replace a good list with an empty one; now it is
+  reported and the list already recorded is kept.
+- The window tests catch a binding that does not resolve, not just one that throws.
+
 ## 0.6.1
 
 - **Fixes 0.6.0, which would not open.** The window failed to build and the app showed an error
