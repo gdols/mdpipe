@@ -76,7 +76,7 @@
                 <!-- Shown only when the manifest names a release newer than this build. Nothing is
                      downloaded or replaced: the executable is portable and may be somewhere it
                      cannot write to, so the link opens the release page in the browser. -->
-                <Border Visibility="{Binding HasUpdate, Converter={StaticResource BoolToVis}}"
+                <Border Visibility="{Binding UpdateNotice.HasNotice, Converter={StaticResource BoolToVis}}"
                         Background="#EFF6FF" CornerRadius="6" Padding="12,9" Margin="0,12,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -84,14 +84,14 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding UpdateMessage}" TextWrapping="Wrap"
+                        <TextBlock Grid.Column="0" Text="{Binding UpdateNotice.Message}" TextWrapping="Wrap"
                                    FontSize="13" VerticalAlignment="Center"
                                    Foreground="{StaticResource TextPrimary}" />
                         <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0" FontSize="13">
-                            <Hyperlink Command="{Binding UpdateCommand}" Foreground="{StaticResource Accent}"
-                                       TextDecorations="None"><Run Text="{Binding UpdateActionText, Mode=OneWay}" /></Hyperlink>
+                            <Hyperlink Command="{Binding UpdateNotice.InstallCommand}" Foreground="{StaticResource Accent}"
+                                       TextDecorations="None"><Run Text="{Binding UpdateNotice.ActionText, Mode=OneWay}" /></Hyperlink>
                         </TextBlock>
-                        <Button Grid.Column="2" Content="&#x2715;" Command="{Binding DismissUpdateCommand}"
+                        <Button Grid.Column="2" Content="&#x2715;" Command="{Binding UpdateNotice.DismissCommand}"
                                 ToolTip="{res:Str UpdateDismiss}" Margin="12,0,0,0" Padding="6,0"
                                 Background="Transparent" BorderThickness="0" Cursor="Hand"
                                 FontSize="12" Foreground="{StaticResource TextMuted}" />
