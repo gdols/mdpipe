@@ -136,141 +136,17 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task WhenTheManifestNamesANewerRelease_TheBarAppears()
+    public async Task TheWindowHandsTheReleaseItLearnedAboutToTheNotice()
     {
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r");
+        // The notice looks after itself and is tested on its own; what belongs here is the wiring,
+        // that the answer coming back from setup actually reaches it.
+        _manifest.App = new AppRelease("9.9.9", "https://example.invalid/r");
         var vm = BuildSut();
 
         await vm.InitializeAsync();
 
-        vm.HasUpdate.Should().BeTrue();
-        vm.Update!.Version.Should().Be("0.9.0");
-        vm.UpdateMessage.Should().Contain("0.9.0").And.Contain(RunningVersion);
-    }
-
-    [Fact]
-    public async Task WhenThisIsTheNewestRelease_ThereIsNoBar()
-    {
-        _manifest.App = new AppRelease(RunningVersion, "https://example.invalid/r");
-        var vm = BuildSut();
-
-        await vm.InitializeAsync();
-
-        vm.HasUpdate.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task OnAManifestWithoutTheReleaseBlock_ThereIsNoBar()
-    {
-        var vm = BuildSut();
-
-        await vm.InitializeAsync();
-
-        vm.HasUpdate.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task UpdatingAsksFirst_AndDoesNothingIfTheAnswerIsNo()
-    {
-        // The whole point of this being a prompt. Replacing the running application is not something
-        // to do because somebody clicked near it.
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r", DownloadUrl: "https://example.invalid/MdPipe.exe");
-        _dialogs.ConfirmAnswer = false;
-        var vm = BuildSut();
-        await vm.InitializeAsync();
-
-        vm.UpdateCommand.Execute(null);
-
-        _dialogs.Confirmations.Should().ContainSingle();
-        _installer.Installed.Should().BeEmpty();
-        _dialogs.RestartedWith.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task SayingYes_InstallsAndRestarts()
-    {
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r", DownloadUrl: "https://example.invalid/MdPipe.exe");
-        var vm = BuildSut();
-        await vm.InitializeAsync();
-
-        vm.UpdateCommand.Execute(null);
-        for (var i = 0; i < 200 && _dialogs.RestartedWith is null; i++) await Task.Delay(10);
-
-        _installer.Installed.Should().ContainSingle().Which.Version.Should().Be("0.9.0");
-        _dialogs.RestartedWith.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task WhereItCannotWriteItself_ItSendsYouToThePageInstead()
-    {
-        // A portable executable on read-only media, or under Program Files. Offering to replace
-        // itself and then failing at the last step would be worse than not offering.
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r", DownloadUrl: "https://example.invalid/MdPipe.exe");
-        _installer.CanInstall = false;
-        var vm = BuildSut();
-        await vm.InitializeAsync();
-
-        vm.CanInstallUpdate.Should().BeFalse();
-        vm.UpdateCommand.Execute(null);
-
-        _dialogs.Links.Should().ContainSingle().Which.Should().Be("https://example.invalid/r");
-        _dialogs.Confirmations.Should().BeEmpty("there is nothing to confirm, the browser does the work");
-        _installer.Installed.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task WithNoDownloadAddress_ItAlsoSendsYouToThePage()
-    {
-        // An older manifest, or one written without the download url.
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r");
-        var vm = BuildSut();
-        await vm.InitializeAsync();
-
-        vm.CanInstallUpdate.Should().BeFalse();
-        vm.UpdateCommand.Execute(null);
-
-        _dialogs.Links.Should().ContainSingle();
-    }
-
-    [Fact]
-    public async Task WhenTheUpdateFails_NothingBreaksAndYouAreOfferedTheManualRoute()
-    {
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r", DownloadUrl: "https://example.invalid/MdPipe.exe");
-        _installer.ThrowOnInstall = new AppUpdateException("the checksum did not match");
-        var vm = BuildSut();
-        await vm.InitializeAsync();
-
-        vm.UpdateCommand.Execute(null);
-        for (var i = 0; i < 200 && vm.IsBusy; i++) await Task.Delay(10);
-
-        _dialogs.RestartedWith.Should().BeNull();
-        _dialogs.Links.Should().ContainSingle("the second confirmation offers the download page");
-        vm.StatusMessage.Should().Contain("Nothing was changed");
-        vm.IsBusy.Should().BeFalse("a failed update must not leave the app stuck");
-    }
-
-    [Fact]
-    public async Task DismissingTheBar_HidesItForThisSession()
-    {
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r");
-        var vm = BuildSut();
-        await vm.InitializeAsync();
-
-        vm.DismissUpdateCommand.Execute(null);
-
-        vm.HasUpdate.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task AnOldEnoughVersion_GetsTheBlunterWording()
-    {
-        _manifest.App = new AppRelease("0.9.0", "https://example.invalid/r", CriticalBelow: "0.8.0");
-        var vm = BuildSut();
-
-        await vm.InitializeAsync();
-
-        vm.Update!.Critical.Should().BeTrue();
-        vm.UpdateMessage.Should().Contain("known problem");
+        vm.UpdateNotice.HasNotice.Should().BeTrue();
+        vm.UpdateNotice.Update!.Version.Should().Be("9.9.9");
     }
 
     [Fact]
@@ -402,44 +278,26 @@ public sealed class MainViewModelTests : IDisposable
         public string? FolderToReturn { get; set; }
         public List<string> Opened { get; } = [];
 
-        /// <summary>What the user answers when asked to confirm something.</summary>
-        public bool ConfirmAnswer { get; set; } = true;
-
-        public List<(string Message, string Title)> Confirmations { get; } = [];
-        public List<string> Links { get; } = [];
-        public string? RestartedWith { get; private set; }
-
         public void ShowMessage(string message, string title, DialogKind kind) => Messages.Add((message, title, kind));
         public string? PickFolder(string title) => FolderToReturn;
         public void OpenFolder(string path) => Opened.Add(path);
 
-        public bool Confirm(string message, string title)
-        {
-            Confirmations.Add((message, title));
-            return ConfirmAnswer;
-        }
-
-        public void OpenLink(string url) => Links.Add(url);
-        public void RestartWith(string executablePath) => RestartedWith = executablePath;
+        // Only the update notice asks these, and it is tested where it lives now.
+        public bool Confirm(string message, string title) => false;
+        public void OpenLink(string url) { }
+        public void RestartWith(string executablePath) { }
     }
 
+    /// <summary>Required to build the view model; the notice that uses it is tested separately.</summary>
     private sealed class FakeUpdateInstaller : IAppUpdateInstaller
     {
-        public bool CanInstall { get; set; } = true;
-        public Exception? ThrowOnInstall { get; set; }
-        public List<AppUpdate> Installed { get; } = [];
-        public int CleanUps { get; private set; }
+        public bool CanInstall => false;
 
         public Task<string> InstallAsync(
-            AppUpdate update, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
-        {
-            if (ThrowOnInstall is not null) return Task.FromException<string>(ThrowOnInstall);
+            AppUpdate update, IProgress<string>? progress = null, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("The update flow is covered by UpdateNoticeViewModelTests.");
 
-            Installed.Add(update);
-            return Task.FromResult(@"C:\somewhere\MdPipe.exe");
-        }
-
-        public void CleanUpPreviousUpdate() => CleanUps++;
+        public void CleanUpPreviousUpdate() { }
     }
 
     private sealed class FakeEnvironment : IPythonEnvironmentManager

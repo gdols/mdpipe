@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
@@ -131,6 +132,7 @@ public sealed class WindowBindingTests : IDisposable
     {
         Exception? failure = null;
         _dispatcherFailure = null;
+        lock (BindingProblems) BindingProblems.Clear();
 
         UiThread.Invoke(() =>
         {
@@ -148,9 +150,28 @@ public sealed class WindowBindingTests : IDisposable
         if (failure is null && _dispatcherFailure is not null) failure = _dispatcherFailure;
 
         if (failure is not null) throw failure;
+
+        // A binding whose path does not exist is the quiet half of this. WPF does not throw for it,
+        // it writes a line and carries on showing nothing, so a mistyped property would sail through
+        // a test that only watches for exceptions. Renaming one is exactly the sort of change that
+        // makes that happen.
+        lock (BindingProblems) BindingProblems.Should().BeEmpty("every binding in the window should resolve");
     }
 
     private static Exception? _dispatcherFailure;
+
+    private static readonly List<string> BindingProblems = [];
+
+    /// <summary>Collects what WPF says about bindings it could not resolve.</summary>
+    private sealed class BindingListener : TraceListener
+    {
+        public override void Write(string? message) { }
+
+        public override void WriteLine(string? message)
+        {
+            if (message is { Length: > 0 }) lock (BindingProblems) BindingProblems.Add(message);
+        }
+    }
 
     private static Dispatcher UiThread => UiThreadHolder.Value;
 
@@ -170,6 +191,11 @@ public sealed class WindowBindingTests : IDisposable
             {
                 Source = new Uri("pack://application:,,,/MdPipe;component/Resources/Theme.xaml", UriKind.Absolute)
             });
+
+            // WPF reports unresolved bindings through this rather than by throwing.
+            PresentationTraceSources.Refresh();
+            PresentationTraceSources.DataBindingSource.Listeners.Add(new BindingListener());
+            PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Error;
 
             Dispatcher.CurrentDispatcher.UnhandledException += (_, e) =>
             {

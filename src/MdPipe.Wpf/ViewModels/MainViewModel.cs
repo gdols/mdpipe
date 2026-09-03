@@ -11,7 +11,7 @@ using MdPipe.Wpf.Services;
 
 namespace MdPipe.Wpf.ViewModels;
 
-public sealed class MainViewModel : ObservableObject
+public sealed class MainViewModel : ObservableObject, IUpdateHost
 {
     private readonly SetupOrchestrator _setupOrchestrator;
     private readonly IMarkItDownConverter _converter;
@@ -31,12 +31,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly InputResolver _inputResolver;
     private readonly FormatCatalogProvider _formats;
     private readonly IDialogService _dialogs;
-    private readonly AppUpdateService _updates;
-    private readonly IAppUpdateInstaller _updateInstaller;
     private readonly string? _runningVersion;
     private bool _includeEverything;
-    private AppUpdate? _update;
-    private bool _updateDismissed;
 
     public MainViewModel(
         SetupOrchestrator setupOrchestrator,
@@ -56,8 +52,6 @@ public sealed class MainViewModel : ObservableObject
         _inputResolver = inputResolver;
         _formats = formats;
         _dialogs = dialogs;
-        _updates = updates;
-        _updateInstaller = updateInstaller;
         _settings = settings;
         _runningVersion = runningVersion;
 
@@ -76,15 +70,7 @@ public sealed class MainViewModel : ObservableObject
                 _scanCts?.Cancel();
             },
             () => CanCancel);
-        UpdateCommand = new RelayCommand(async () => await UpdateAsync(), () => HasUpdate && !IsBusy);
-        DismissUpdateCommand = new RelayCommand(() =>
-        {
-            // Only for this session. Nagging every launch is rude; forgetting entirely means the
-            // people this feature exists for never hear about the fix again.
-            _updateDismissed = true;
-            OnPropertyChanged(nameof(HasUpdate));
-            OnPropertyChanged(nameof(CanInstallUpdate));
-        });
+        UpdateNotice = new UpdateNoticeViewModel(updates, updateInstaller, dialogs, this, runningVersion);
 
         if (!string.IsNullOrEmpty(_settings.OutputFolder) && Directory.Exists(_settings.OutputFolder))
             _outputFolder = _settings.OutputFolder;
@@ -98,31 +84,9 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ChooseOutputFolderCommand { get; }
     public RelayCommand ReinstallCommand { get; }
     public RelayCommand CancelCommand { get; }
-    public RelayCommand UpdateCommand { get; }
-    public RelayCommand DismissUpdateCommand { get; }
 
-    /// <summary>
-    /// Whether MdPipe can replace itself here, or can only point at the release page. False on
-    /// read-only media, under Program Files, and anywhere else the folder cannot be written to.
-    /// </summary>
-    public bool CanInstallUpdate =>
-        Update is { DownloadUrl.Length: > 0 } && _updateInstaller.CanInstall;
-
-    /// <summary>What the link offers to do, which depends on whether it can actually do it.</summary>
-    public string UpdateActionText => CanInstallUpdate ? Strings.UpdateInstall : Strings.UpdateGetIt;
-
-    /// <summary>
-    /// The newer release the manifest named, if there is one and the user hasn't waved it away.
-    /// </summary>
-    public AppUpdate? Update => _updateDismissed ? null : _update;
-
-    public bool HasUpdate => Update is not null;
-
-    public string UpdateMessage => Update is not { } update
-        ? string.Empty
-        : string.Format(
-            update.Critical ? Strings.UpdateCritical : Strings.UpdateAvailable,
-            update.Version, _runningVersion);
+    /// <summary>The bar offering a newer MdPipe, which looks after itself.</summary>
+    public UpdateNoticeViewModel UpdateNotice { get; }
 
     public bool IsConverting
     {
@@ -247,12 +211,7 @@ public sealed class MainViewModel : ObservableObject
 
             // The manifest is already fetched, cached and falls back on its own, so learning whether
             // a newer MdPipe exists costs nothing extra and works the same when offline.
-            _update = _updates.CheckFor(result.App, _runningVersion);
-            OnPropertyChanged(nameof(Update));
-            OnPropertyChanged(nameof(HasUpdate));
-            OnPropertyChanged(nameof(UpdateMessage));
-            OnPropertyChanged(nameof(CanInstallUpdate));
-            OnPropertyChanged(nameof(UpdateActionText));
+            UpdateNotice.Consider(result.App);
         }
         catch (PythonNotFoundException)
         {
@@ -287,52 +246,6 @@ public sealed class MainViewModel : ObservableObject
             _dialogs.ShowMessage(
                 string.Format(Strings.SetupFailedBody, ex.Message),
                 Strings.SetupUnfinishedTitle, DialogKind.Error);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    /// <summary>
-    /// Replaces MdPipe with the newer release, having asked first.
-    /// </summary>
-    /// <remarks>
-    /// Where the executable cannot be written, this opens the release page instead of failing at
-    /// the last step. That is not a rare case: plenty of people keep a portable tool somewhere they
-    /// do not own.
-    /// </remarks>
-    private async Task UpdateAsync()
-    {
-        if (Update is not { } update) return;
-
-        if (!CanInstallUpdate)
-        {
-            _dialogs.OpenLink(update.ReleaseUrl);
-            return;
-        }
-
-        if (!_dialogs.Confirm(
-                string.Format(Strings.UpdateConfirmBody, update.Version),
-                Strings.UpdateConfirmTitle))
-            return;
-
-        IsBusy = true;
-        try
-        {
-            var progress = new Progress<string>(message => StatusMessage = message);
-            var newExecutable = await _updateInstaller.InstallAsync(update, progress);
-
-            StatusMessage = Strings.UpdateRestarting;
-            _dialogs.RestartWith(newExecutable);
-        }
-        catch (AppUpdateException ex)
-        {
-            // Nothing was changed on the way to here, so offering the manual route is honest.
-            StatusMessage = Strings.UpdateFailedStatus;
-            if (_dialogs.Confirm(
-                    string.Format(Strings.UpdateFailedBody, ex.Message), Strings.UpdateFailedTitle))
-                _dialogs.OpenLink(update.ReleaseUrl);
         }
         finally
         {
@@ -543,6 +456,12 @@ public sealed class MainViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
+    // --- IUpdateHost: the little the notice needs from the window it sits in ---
+
+    void IUpdateHost.SetBusy(bool busy) => IsBusy = busy;
+
+    void IUpdateHost.Report(string status) => StatusMessage = status;
 
     private void ChooseOutputFolder()
     {
