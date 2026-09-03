@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SetupOrchestrator>();
         services.AddSingleton<PythonEnvironmentManager>();
         services.AddSingleton<IPythonEnvironmentManager>(sp => sp.GetRequiredService<PythonEnvironmentManager>());
+        services.AddSingleton<IConversionWorkerSource>(sp => sp.GetRequiredService<PythonEnvironmentManager>());
         services.AddSingleton<IMarkItDownConverter, MarkItDownConverter>();
         services.AddSingleton<IAppUpdateInstaller, AppUpdateInstaller>();
 

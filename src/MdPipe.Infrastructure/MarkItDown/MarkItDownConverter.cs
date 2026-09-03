@@ -20,15 +20,17 @@ namespace MdPipe.Infrastructure.MarkItDown;
 /// interpreter dies outright, the file in flight is failed and the worker restarted for the rest.
 /// </remarks>
 public sealed class MarkItDownConverter(
-    PythonEnvironmentManager environmentManager,
-    ILogger<MarkItDownConverter> logger) : IMarkItDownConverter
+    IConversionWorkerSource workerSource,
+    ILogger<MarkItDownConverter> logger,
+    TimeSpan? perFileTimeout = null) : IMarkItDownConverter
 {
     /// <summary>
     /// Deliberately generous: a large document can legitimately take minutes, so this is a "something
     /// is stuck" threshold rather than a performance budget. Without it a pathological file would hang
     /// the batch forever, which is exactly what used to happen.
     /// </summary>
-    private static readonly TimeSpan PerFileTimeout = TimeSpan.FromMinutes(5);
+    /// <remarks>Overridable so a test of the timeout does not have to take five minutes.</remarks>
+    private readonly TimeSpan _perFileTimeout = perFileTimeout ?? TimeSpan.FromMinutes(5);
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -44,7 +46,7 @@ public sealed class MarkItDownConverter(
         IReadOnlyList<ConversionRequest> requests,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var pythonExe = environmentManager.GetPythonExecutable();
+        var pythonExe = workerSource.PythonExecutable;
         if (pythonExe is null)
         {
             foreach (var _ in requests)
@@ -52,7 +54,7 @@ public sealed class MarkItDownConverter(
             yield break;
         }
 
-        var script = environmentManager.EnsureWorkerScript();
+        var script = workerSource.EnsureWorkerScript();
         Worker? worker = null;
 
         try
@@ -94,12 +96,12 @@ public sealed class MarkItDownConverter(
         string? line;
         try
         {
-            line = await worker.RequestAsync(request.SourcePath, PerFileTimeout, cancellationToken);
+            line = await worker.RequestAsync(request.SourcePath, _perFileTimeout, cancellationToken);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogWarning("Conversion of {File} timed out after {Minutes} minutes", request.SourcePath, PerFileTimeout.TotalMinutes);
-            return (ConversionResult.Fail($"Timed out after {PerFileTimeout.TotalMinutes:0} minutes."), true);
+            logger.LogWarning("Conversion of {File} timed out after {Minutes} minutes", request.SourcePath, _perFileTimeout.TotalMinutes);
+            return (ConversionResult.Fail($"Timed out after {_perFileTimeout.TotalMinutes:0} minutes."), true);
         }
 
         if (line is null)

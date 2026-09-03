@@ -11,7 +11,7 @@ namespace MdPipe.Infrastructure.Python;
 
 public sealed class PythonEnvironmentManager(
     ILogger<PythonEnvironmentManager> logger,
-    IHttpClientFactory httpClientFactory) : IPythonEnvironmentManager
+    IHttpClientFactory httpClientFactory) : IPythonEnvironmentManager, IConversionWorkerSource
 {
     private const string EmbeddedPythonVersion = "3.12.7";
 
@@ -94,7 +94,8 @@ public sealed class PythonEnvironmentManager(
         return python is null ? null : await GetInstalledVersionAsync(python, cancellationToken);
     }
 
-    internal string? GetPythonExecutable() => ReadyPython;
+    /// <inheritdoc />
+    public string? PythonExecutable => ReadyPython;
 
     private const string WorkerResourceName = "MdPipe.Infrastructure.Resources.worker.py";
     private static string WorkerScript => Path.Combine(Root, "worker.py");
@@ -103,7 +104,8 @@ public sealed class PythonEnvironmentManager(
     /// Drops the bundled conversion worker next to the environment and returns its path, rewriting it
     /// whenever it is missing or stale so an updated MdPipe never talks to an old script.
     /// </summary>
-    internal string EnsureWorkerScript()
+    /// <inheritdoc />
+    public string EnsureWorkerScript()
     {
         var expected = ReadEmbeddedWorker();
 
