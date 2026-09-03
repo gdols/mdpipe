@@ -49,6 +49,53 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
 
+      # v0.6.0 passed every test and did not open: a binding that only fails once a window is
+      # laid out. The tests cover that now, but they run against the assemblies rather than the
+      # single file that people download, so this starts the actual artefact and waits for its
+      # window. It also covers what only the packed build can get wrong, like a resource that
+      # failed to embed.
+      - name: The executable has to actually open
+        shell: pwsh
+        run: |
+          $exe = "src/MdPipe.Wpf/bin/Release/net10.0-windows/win-x64/publish/MdPipe.exe"
+          $process = Start-Process $exe -PassThru
+
+          # Polled rather than slept: a cold runner unpacking 65 MB is slower than a desktop, and
+          # a fixed wait would be either flaky or wasteful.
+          $title = $null
+          foreach ($attempt in 1..60) {
+            Start-Sleep -Seconds 1
+            $process.Refresh()
+
+            if ($process.HasExited) {
+              throw "MdPipe.exe exited on startup with code $($process.ExitCode)."
+            }
+
+            if ($process.MainWindowTitle) { $title = $process.MainWindowTitle; break }
+          }
+
+          if (-not $title) {
+            $process.Kill()
+            throw "MdPipe.exe never opened a window."
+          }
+
+          "Window title: $title"
+
+          # The unhandled-exception dialog is titled exactly "MdPipe", so that is the shape of the
+          # 0.6.0 failure. The real window says "MdPipe - Markdown Converter".
+          if ($title -eq "MdPipe") {
+            $process.Kill()
+            throw "MdPipe.exe opened an error dialog instead of its window."
+          }
+
+          if ($title -notlike "MdPipe - *") {
+            $process.Kill()
+            throw "Unexpected window title: $title"
+          }
+
+          $process.Kill()
+          "The executable opens."
+
       # Published alongside the executable so a copy of MdPipe updating itself has something to
       # check the download against. Without it the updater refuses and sends the user to the
       # browser instead, which is the safe direction to fail in but a worse experience.
