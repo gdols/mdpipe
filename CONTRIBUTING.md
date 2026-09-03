@@ -16,6 +16,9 @@ it over before you spend time on it.
 A few notes to make it smooth:
 
 - The solution needs the [.NET 10 SDK](https://dotnet.microsoft.com/download). `dotnet test` should stay green.
+- A few tests drive a real worker process, so they need Python on PATH. Any version does: the scripts
+  they run import nothing, and the point is that the pipe and the encoding are the real ones rather
+  than a stand-in. Without it those tests fail with a message saying so.
 - The desktop app (WPF) and the CLI share the same engine (`MdPipe.Core` + `MdPipe.Infrastructure`).
   New logic belongs in the engine, not the front-ends.
 - MdPipe never touches the system Python or anything outside its own folder. Please keep it that way.
