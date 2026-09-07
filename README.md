@@ -11,10 +11,15 @@
   <img src="https://img.shields.io/badge/Windows%2010%2F11-64--bit-0078D4?logo=windows&logoColor=white" alt="Windows 10/11">
 </p>
 
-MdPipe converts PDF, Word, Excel, PowerPoint, HTML and images to Markdown on
-Windows. It is available as a portable desktop application and as a .NET CLI.
-Conversion runs through Microsoft's
-[MarkItDown](https://github.com/microsoft/markitdown).
+If you have documents you want to put into ChatGPT, Obsidian, or anything else
+that reads Markdown, MdPipe converts them for you. PDF, Word, Excel, PowerPoint,
+HTML, images and more, a whole folder at a time.
+
+**It is one file and you double-click it.** No installer, no Python, no .NET,
+nothing to configure. Conversion runs through Microsoft's
+[MarkItDown](https://github.com/microsoft/markitdown), which MdPipe downloads
+into a folder of its own and keeps to a version it was tested with. There is a
+CLI in here too, for anyone who wants one.
 
 ## Download
 
@@ -40,8 +45,9 @@ or under Program Files, it opens the download page instead.
   <img src="assets/screenshots/app-main.png" alt="MdPipe desktop app" width="720">
 </p>
 
-I built MdPipe so I could give someone a document converter without first asking
-them to install Python or work from a terminal.
+There are other ways to run MarkItDown, and most of them start with installing
+Python. I wanted one I could hand to someone who has never opened a terminal and
+is not about to start.
 
 ## What it can convert
 
