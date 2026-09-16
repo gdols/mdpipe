@@ -138,7 +138,7 @@ public static class ConvertCommand
                 if (!result.Success)
                 {
                     // Keep going: one unreadable file shouldn't cost you the other twenty-nine.
-                    Console.Error.WriteLine($"Failed: {Path.GetFileName(file)} — {result.ErrorMessage}");
+                    Console.Error.WriteLine($"Failed: {Path.GetFileName(file)}: {result.ErrorMessage}");
                     failed++;
                     continue;
                 }

@@ -3,18 +3,10 @@ using System.Diagnostics;
 namespace MdPipe.Infrastructure.Tests;
 
 /// <summary>
-/// Finds an interpreter for the tests that need a real worker process.
+/// Finds an interpreter for the tests that need a real worker process. The scripts involved import
+/// nothing, so any Python will do. Tried in the same order the app uses, the py launcher first,
+/// since a bare python on PATH is often the Store stub.
 /// </summary>
-/// <remarks>
-/// MdPipe converts by talking to Python, so testing that conversation with an actual interpreter is
-/// the faithful thing rather than a convenience. The scripts involved import nothing, so any Python
-/// will do and none of it costs the several hundred megabytes a real MarkItDown needs.
-/// <para>
-/// Tried in the same order the application itself uses, the <c>py</c> launcher first, since on
-/// Windows a bare <c>python</c> on PATH is often the Store stub that answers questions and refuses
-/// to do anything else.
-/// </para>
-/// </remarks>
 public static class Python
 {
     private static readonly Lazy<string?> Found = new(Locate);
@@ -22,9 +14,8 @@ public static class Python
     public static string? Executable => Found.Value;
 
     /// <summary>
-    /// The interpreter, or a failure explaining what is missing. Deliberately not a silent skip: a
-    /// test that quietly does not run is worse than one that says why, and CI installs Python for
-    /// exactly this reason.
+    /// The interpreter, or a failure saying what is missing. Not a silent skip: a test that quietly
+    /// does not run is worse than one that says why.
     /// </summary>
     public static string Required =>
         Executable ?? throw new InvalidOperationException(

@@ -1,7 +1,5 @@
-# Git guesses whether a file is text, and it guessed wrong about the hand-built PDF in
-# tests/fixtures: a PDF's cross-reference table stores absolute byte offsets, so rewriting its
-# line endings on checkout moves every offset and the file stops parsing. The Office fixtures
-# are zip archives, which the same treatment would flatten just as thoroughly.
+# The fixtures under tests/ must not be touched: a PDF stores absolute byte offsets, so rewriting
+# its line endings moves every one of them and the file stops parsing. The Office ones are zips.
 * text=auto
 
 *.pdf  binary

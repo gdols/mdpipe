@@ -73,9 +73,7 @@
                              Background="Transparent" Foreground="{StaticResource Accent}"
                              Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
 
-                <!-- Shown only when the manifest names a release newer than this build. Nothing is
-                     downloaded or replaced: the executable is portable and may be somewhere it
-                     cannot write to, so the link opens the release page in the browser. -->
+                <!-- Shown only when the manifest names a release newer than this build. -->
                 <Border Visibility="{Binding UpdateNotice.HasNotice, Converter={StaticResource BoolToVis}}"
                         Background="#EFF6FF" CornerRadius="6" Padding="12,9" Margin="0,12,0,0">
                     <Grid>
@@ -183,8 +181,7 @@
                                         <TextBlock Text="{Binding Folder}" FontSize="11.5"
                                                    Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
-                                    <!-- Capped and trimmed: a long conversion error used to eat the whole
-                                         row and squeeze the file name down to a couple of letters. -->
+                                    <!-- Capped, or a long error squeezes the file name to nothing. -->
                                     <TextBlock Grid.Column="1" Text="{Binding StatusText}" FontSize="12.5"
                                                FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0"
                                                MaxWidth="260" TextTrimming="CharacterEllipsis"

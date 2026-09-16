@@ -15,23 +15,12 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     private const string EmbeddedPythonVersion = "3.12.7";
 
     /// <summary>
-    /// The Python versions this release of MdPipe can actually install MarkItDown on, as a
-    /// half-open range: 3.10 up to but not including 3.14.
+    /// The Python versions MarkItDown can actually be installed on: 3.10 up to but not including
+    /// 3.14. The floor is MarkItDown's own; the ceiling belongs to its dependencies, which is the
+    /// less obvious half. markitdown[all] 0.1.7 pins youtube-transcript-api~=1.0.0 and every version
+    /// in that range declares &lt;3.14, so on a 3.14 machine pip finds nothing and gives up.
+    /// Raise it when a MarkItDown release supports a newer Python, like EmbeddedPythonVersion.
     /// </summary>
-    /// <remarks>
-    /// The lower bound is MarkItDown's own. The upper one belongs to its dependencies, which is
-    /// less obvious and is what went wrong: markitdown[all] 0.1.7 pins
-    /// <c>youtube-transcript-api~=1.0.0</c>, every version in that range declares
-    /// <c>&lt;3.14</c>, and on a machine with Python 3.14 pip finds nothing to install and gives up
-    /// partway through a first run. MdPipe had only ever checked the floor, so it accepted such a
-    /// Python, built a virtual environment on it and failed at the last step, with the bundled
-    /// interpreter that would have worked sitting there unused.
-    /// <para>
-    /// Raise the ceiling when a MarkItDown release supports a newer Python, the same way
-    /// <see cref="EmbeddedPythonVersion"/> gets raised: both are part of what a release was tested
-    /// with, not settings.
-    /// </para>
-    /// </remarks>
     private static readonly (int Major, int Minor) OldestUsablePython = (3, 10);
     private static readonly (int Major, int Minor) FirstUnusablePython = (3, 14);
 
@@ -45,9 +34,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     private readonly ILogger<PythonEnvironmentManager> logger;
     private readonly IHttpClientFactory httpClientFactory;
 
-    /// <param name="root">The folder MdPipe keeps its environment in. Overridable so tests can work
-    /// against a throwaway directory rather than the real one under AppData, which is where every
-    /// field bug in this file has come from and the last place a test should be poking.</param>
+    /// <param name="root">The folder MdPipe keeps its environment in. Overridable so tests work
+    /// against a throwaway directory instead of the real one under AppData.</param>
     public PythonEnvironmentManager(
         ILogger<PythonEnvironmentManager> logger,
         IHttpClientFactory httpClientFactory,
@@ -70,8 +58,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     private string EmbedPython => Path.Combine(EmbedRoot, "python.exe");
 
     /// <summary>
-    /// The interpreter to use: the virtual environment built on a system Python when there is one,
-    /// otherwise the embeddable Python MdPipe downloaded for itself.
+    /// The venv built on a system Python when there is one, otherwise the Python MdPipe downloaded
+    /// for itself.
     /// </summary>
     private string? ReadyPython =>
         File.Exists(VenvPython) ? VenvPython :
@@ -132,10 +120,9 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         }
         catch (PythonEnvironmentException) when (target == VenvPython)
         {
-            // The interpreter ran, so this is not a broken Python: it is one MarkItDown will not
-            // install on. The version check ahead of this catches the case we know about, and this
-            // catches the next one, which by definition we do not. The bundled interpreter is a
-            // version this release was tested with, so it is worth the download to try again.
+            // The interpreter ran, so this is not a broken Python, it is one MarkItDown will not
+            // install on. The version check above catches the case we know about; this catches the
+            // next one, which by definition we do not.
             logger.LogWarning(
                 "MarkItDown would not install on the system Python. Falling back to the bundled one.");
             progress?.Report("That Python did not work out. Trying with the one MdPipe brings...");
@@ -161,15 +148,15 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
 
         try
         {
-            // Keep pip output so proxy, firewall and SSL failures reach the user.
+            // pip's output is kept so proxy, firewall and SSL failures reach the user.
             await RunProcessAsync(
                 python, $"-m pip install \"markitdown[all]=={version}\" --disable-pip-version-check",
                 cancellationToken);
         }
         catch (PythonEnvironmentException ex) when (LooksLikeAVersionClash(ex.Message))
         {
-            // Telling somebody to check their firewall when the real problem is the Python they
-            // have installed sends them looking in entirely the wrong place.
+            // Telling somebody to check their firewall when the problem is their Python sends them
+            // looking in entirely the wrong place.
             throw new PythonEnvironmentException(
                 $"MarkItDown {version} cannot be installed on this Python. Its own dependencies do not " +
                 "support that version yet. This is not a problem with your network or your computer.\n\n" +
@@ -178,13 +165,10 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     }
 
     /// <summary>
-    /// Whether pip gave up because nothing it could install satisfied the requirements, rather than
-    /// because it could not reach anything.
+    /// Whether pip gave up because nothing satisfied the requirements, rather than because it could
+    /// not reach anything. The two look identical in a dialog box and lead somewhere completely
+    /// different, and the reflex is to blame the network.
     /// </summary>
-    /// <remarks>
-    /// Matched on pip's own wording. It is worth being specific: the two failures look identical in
-    /// a dialog box and lead somewhere completely different, and the reflex is to blame the network.
-    /// </remarks>
     internal static bool LooksLikeAVersionClash(string pipOutput) =>
         pipOutput.Contains("require a different python version", StringComparison.OrdinalIgnoreCase) ||
         pipOutput.Contains("No matching distribution found", StringComparison.OrdinalIgnoreCase) ||
@@ -203,8 +187,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     private string WorkerScript => Path.Combine(Root, "worker.py");
 
     /// <summary>
-    /// Drops the bundled conversion worker next to the environment and returns its path, rewriting it
-    /// whenever it is missing or stale so an updated MdPipe never talks to an old script.
+    /// Drops the bundled worker next to the environment, rewriting it whenever it is missing or
+    /// stale so an updated MdPipe never talks to an old script.
     /// </summary>
     /// <inheritdoc />
     public string EnsureWorkerScript()
@@ -225,7 +209,7 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
 
     /// <summary>
     /// Asks MarkItDown what it can read and stores the answer, so MdPipe reports the truth about this
-    /// machine instead of a list somebody typed out once. Skipped when the stored answer already
+    /// machine instead of a list somebody typed out once. Skipped when the answer on disk already
     /// belongs to the installed version, since asking costs a Python start-up.
     /// </summary>
     public async Task EnsureFormatCatalogAsync(
@@ -258,10 +242,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
                 return;
             }
 
-            // A reply with no formats in it is a broken discovery, not an engine that reads nothing.
-            // Writing it would replace a good catalogue with an empty one and quietly drop the app
-            // back to the list compiled into the build, with the window then reporting formats this
-            // machine may not actually have. Keeping what is already there is the safer wrong answer.
+            // No formats means broken discovery, not an engine that reads nothing. Writing that
+            // would replace a good catalogue with an empty one. Keeping what is there is safer.
             if (!DescribesFormats(line, out var complaint))
             {
                 logger.LogWarning(
@@ -276,7 +258,7 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         }
         catch (Exception ex) when (ex is PythonEnvironmentException or IOException or UnauthorizedAccessException)
         {
-            // Not knowing the exact list is a cosmetic loss, not a reason to fail a setup that worked.
+            // A cosmetic loss, not a reason to fail a setup that worked.
             logger.LogWarning(ex, "Could not record the engine's supported formats; the bundled list stays in use.");
         }
     }
@@ -310,7 +292,7 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
 
             if (File.Exists(VenvPython)) return VenvPython;
 
-            // Microsoft Store Python can report a successful venv creation without placing the interpreter on disk.
+            // Store Python can report a successful venv without putting the interpreter on disk.
             logger.LogWarning("The system Python did not produce a usable venv; using an embedded Python instead.");
             TryDeleteDir(VenvRoot);
         }
@@ -447,13 +429,10 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     }
 
     /// <summary>
-    /// Whether the worker's reply is a usable catalogue.
+    /// Whether the worker's reply is a usable catalogue. Discovery reaches into MarkItDown's private
+    /// converter list, which can stop working in any release without anything else breaking, so the
+    /// worker says so outright and this is where it is believed rather than written to disk.
     /// </summary>
-    /// <remarks>
-    /// Discovery reaches into MarkItDown's private converter list, because it offers no public way
-    /// to ask. That can stop working in any release without anything else breaking, so the worker
-    /// says so outright and this is where that is believed rather than written to disk.
-    /// </remarks>
     internal static bool DescribesFormats(string json, out string complaint)
     {
         complaint = string.Empty;
@@ -487,10 +466,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     }
 
     /// <summary>
-    /// Asks the standard library rather than pip. Measured on this machine, "pip show markitdown"
-    /// takes 438 ms because it imports the whole of pip, while importlib.metadata answers the same
-    /// question in 119 ms. It has been in the standard library since 3.8 and MdPipe requires 3.10,
-    /// so it is always there. A missing package exits non-zero, which the catch turns into null.
+    /// importlib.metadata rather than "pip show", which imports the whole of pip: 119 ms against
+    /// 438 ms measured here. A missing package exits non-zero, which the catch turns into null.
     /// </summary>
     private async Task<string?> GetInstalledVersionAsync(string python, CancellationToken cancellationToken)
     {
@@ -543,9 +520,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
     }
 
     /// <summary>
-    /// Whether an interpreter answered the health check, remembered for as long as the process lives.
-    /// A Python that was fine a second ago is still fine, and the app used to pay for another
-    /// interpreter start every time it asked.
+    /// Health checks already done, remembered for the life of the process. A Python that was fine a
+    /// second ago is still fine, and asking again costs another interpreter start.
     /// </summary>
     private readonly Dictionary<string, bool> _healthChecked = new(StringComparer.OrdinalIgnoreCase);
 
@@ -584,8 +560,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         {
             if (!Directory.Exists(dir)) return;
 
-            // The embeddable zip extracts some files as read-only, and Directory.Delete refuses to
-            // remove those. Clear the attribute first so a rebuild actually starts from scratch.
+            // The embeddable zip extracts some files read-only and Directory.Delete refuses those.
+            // Clear the attribute first so a rebuild actually starts from scratch.
             foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
                 File.SetAttributes(file, FileAttributes.Normal);
 
@@ -593,7 +569,7 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // A locked cleanup target should not abort setup, but it must not be invisible either.
+            // Should not abort setup, but must not be invisible either.
             logger.LogWarning(ex, "Couldn't fully delete {Dir}; continuing with what's there.", dir);
         }
     }
@@ -630,9 +606,8 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         }
         catch (OperationCanceledException)
         {
-            // Cancelling only stopped the waiting. pip carried on downloading in the background,
-            // into the very folder a retry deletes and rebuilds, so a cancelled first run could be
-            // followed by a second one racing a process nobody could see. Take it with us.
+            // Cancelling only stops the waiting. pip would carry on downloading into the folder a
+            // retry deletes and rebuilds, so a second run would race a process nobody can see.
             try { process.Kill(entireProcessTree: true); }
             catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException) { }
             throw;

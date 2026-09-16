@@ -19,8 +19,8 @@ public partial class App : Application
     private readonly IHost _host;
 
     /// <summary>
-    /// What this build calls itself, for comparing against the release the manifest names. Comes from
-    /// the single Version in Directory.Build.props, which the release workflow checks against the tag.
+    /// What this build calls itself. Comes from the Version in Directory.Build.props, which the
+    /// release workflow checks against the tag.
     /// </summary>
     private static string? RunningVersion =>
         Assembly.GetExecutingAssembly().GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : null;
@@ -75,9 +75,9 @@ public partial class App : Application
         window.DataContext = viewModel;
         window.Show();
 
-        // Files dropped on the executable, or opened with it, arrive as arguments. Both jobs start
-        // together on purpose: preparing the environment can spend minutes downloading Python on a
-        // first run, and there is no reason to stare at an empty list while it does.
+        // Files dropped on the exe arrive as arguments. Both jobs start together on purpose: a
+        // first run spends minutes downloading Python and there is no reason to stare at an empty
+        // list while it does.
         var initialization = viewModel.InitializeAsync();
 
         if (e.Args.Length > 0)

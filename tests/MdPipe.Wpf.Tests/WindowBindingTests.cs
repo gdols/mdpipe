@@ -15,22 +15,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace MdPipe.Wpf.Tests;
 
 /// <summary>
-/// Builds the real windows and lets their bindings resolve.
+/// Builds the real windows and lets their bindings resolve. Written after shipping a release that
+/// could not open: Run.Text is one of the few dependency properties WPF binds two-way by default,
+/// so pointing it at a get-only property throws the moment the window is laid out, and every other
+/// test passed because none of them touched the XAML. These assert that the window opens, nothing
+/// about how it looks.
 /// </summary>
-/// <remarks>
-/// Written after shipping a release that could not open. `Run.Text` is one of the few dependency
-/// properties WPF binds two-way by default, so pointing it at a get-only property throws the
-/// moment the window is laid out. Every other test passed, because none of them ever touched the
-/// XAML: the view model was exercised directly and the markup was taken on trust.
-/// <para>
-/// These do not assert anything about how the window looks. They assert that it opens, which is
-/// the part that was silently not covered.
-/// </para>
-/// </remarks>
 [Collection("ui-strings")]
 public sealed class WindowBindingTests : IDisposable
 {
-
     private readonly string _dir = Path.Combine(
         Path.GetTempPath(), "mdpipe-binding-tests", Guid.NewGuid().ToString("N"));
 
@@ -251,10 +244,6 @@ public sealed class WindowBindingTests : IDisposable
             await Task.CompletedTask;
             yield break;
         }
-
-        public Task<ConversionResult> ConvertAsync(
-            ConversionRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(ConversionResult.Ok(string.Empty, null));
     }
 
     private sealed class StubDialogs : IDialogService

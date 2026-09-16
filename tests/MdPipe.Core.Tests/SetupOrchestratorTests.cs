@@ -23,7 +23,6 @@ public class SetupOrchestratorTests
     {
         SchemaVersion = 1,
         StableVersion = stable,
-        MinimumVersion = compatible.FirstOrDefault() ?? stable,
         CompatibleVersions = compatible.ToList().AsReadOnly(),
         UpdatedAt = DateOnly.FromDateTime(DateTime.Today),
         Notes = string.Empty

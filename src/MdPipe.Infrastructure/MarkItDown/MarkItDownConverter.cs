@@ -13,11 +13,9 @@ namespace MdPipe.Infrastructure.MarkItDown;
 /// Converts documents by talking to a Python worker over stdin/stdout.
 /// </summary>
 /// <remarks>
-/// Importing MarkItDown costs around two seconds and converting a small document around a tenth of
-/// that, so the worker is started once per batch and fed one path at a time. What the process
-/// boundary used to give us for free was isolation: a converter crashing took only its own file
-/// down. That is restored deliberately here — the worker catches its own exceptions, and if the
-/// interpreter dies outright, the file in flight is failed and the worker restarted for the rest.
+/// Importing MarkItDown costs about two seconds and converting a small document a tenth of that, so
+/// the worker starts once per batch and is fed one path at a time. If the interpreter dies, the file
+/// in flight is failed and the worker restarted for the rest, so one bad document can't end a batch.
 /// </remarks>
 public sealed class MarkItDownConverter(
     IConversionWorkerSource workerSource,
@@ -26,27 +24,17 @@ public sealed class MarkItDownConverter(
 {
     /// <summary>
     /// Deliberately generous: a large document can legitimately take minutes, so this is a "something
-    /// is stuck" threshold rather than a performance budget. Without it a pathological file would hang
-    /// the batch forever, which is exactly what used to happen.
+    /// is stuck" threshold, not a performance budget. Overridable so its test doesn't take five.
     /// </summary>
-    /// <remarks>Overridable so a test of the timeout does not have to take five minutes.</remarks>
     private readonly TimeSpan _perFileTimeout = perFileTimeout ?? TimeSpan.FromMinutes(5);
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     /// <summary>
-    /// UTF-8 without the byte order mark, which matters on the way in: a BOM would be written once at
-    /// the top of the pipe and the worker would read it as part of the first path it is given.
+    /// No byte order mark, which matters on the way in: a BOM would be written once at the top of the
+    /// pipe and read as part of the first path.
     /// </summary>
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-
-    public async Task<ConversionResult> ConvertAsync(ConversionRequest request, CancellationToken cancellationToken = default)
-    {
-        await foreach (var result in ConvertManyAsync([request], cancellationToken))
-            return result;
-
-        return ConversionResult.Fail("The conversion worker produced no result.");
-    }
 
     public async IAsyncEnumerable<ConversionResult> ConvertManyAsync(
         IReadOnlyList<ConversionRequest> requests,
@@ -82,7 +70,7 @@ public sealed class MarkItDownConverter(
 
                 if (workerLost)
                 {
-                    // The interpreter went down with the file. Start clean so the rest of the batch runs.
+                    // The interpreter went down with the file. Start clean for the rest of the batch.
                     worker.Dispose();
                     worker = null;
                 }
@@ -157,14 +145,10 @@ public sealed class MarkItDownConverter(
     }
 
     /// <summary>
-    /// Nobody wants to see a raw Python traceback, so we boil it down to one line. Python puts the actual
-    /// exception on the last line ("module.SomeError: message"), so that's what we reach for.
+    /// Boils a Python traceback down to one line. Python puts the real exception last
+    /// ("module.SomeError: message"), so that's what we reach for. Only reached when a worker died
+    /// outright, which is precisely when a traceback would otherwise land in front of the user.
     /// </summary>
-    /// <remarks>
-    /// Individual documents no longer reach this: the worker catches its own exceptions and reports a
-    /// clean message per file. What still arrives here is stderr from a worker that died outright, which
-    /// is precisely when a traceback would otherwise land in front of the user.
-    /// </remarks>
     internal static string SummarizeError(string stderr, int exitCode)
     {
         var lines = stderr
@@ -185,13 +169,10 @@ public sealed class MarkItDownConverter(
     }
 
     /// <summary>
-    /// Turns the engine's shrug at a 1990s Office file into something the user can act on.
+    /// MarkItDown has no converter for the old binary Office formats, and the only real fix is on the
+    /// user's side. "No converter attempted a conversion" tells them nothing; "save it as .docx"
+    /// tells them everything.
     /// </summary>
-    /// <remarks>
-    /// MarkItDown has no converter for the old binary formats, and there is no pure-Python reader worth
-    /// depending on, so the only real fix is on the user's side. Saying "no converter attempted a
-    /// conversion" tells them nothing; saying "save it as .docx" tells them everything.
-    /// </remarks>
     private static string? LegacyOfficeAdvice(string sourcePath) =>
         Path.GetExtension(sourcePath).ToLowerInvariant() switch
         {
@@ -203,7 +184,7 @@ public sealed class MarkItDownConverter(
 
     private sealed record WorkerResponse(string? Path, bool Ok, string? Markdown, string? Error);
 
-    /// <summary>One running worker process, plus the plumbing needed to talk to it safely.</summary>
+    /// <summary>One running worker process, and the plumbing to talk to it safely.</summary>
     private sealed class Worker : IDisposable
     {
         private readonly Process _process;
@@ -213,8 +194,8 @@ public sealed class MarkItDownConverter(
         {
             _process = process;
 
-            // stderr has to be drained continuously. MarkItDown prints warnings on import (the missing
-            // ffmpeg one, for instance) and a full pipe buffer would block the worker mid-conversion.
+            // stderr must be drained continuously: MarkItDown prints warnings on import (the
+            // missing ffmpeg one) and a full pipe buffer would block the worker mid-conversion.
             _ = Task.Run(async () =>
             {
                 try
@@ -229,7 +210,7 @@ public sealed class MarkItDownConverter(
             });
         }
 
-        /// <summary>The tail of anything the worker complained about, for when it dies without answering.</summary>
+        /// <summary>What the worker complained about, for when it dies without answering.</summary>
         public string LastError
         {
             get { lock (_stderr) return _stderr.ToString().Trim(); }
@@ -254,11 +235,9 @@ public sealed class MarkItDownConverter(
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                // Force UTF-8 in all three directions so accented and non-ASCII content survives the
-                // round trip. Input matters as much as output and is easier to forget: without it
-                // .NET encodes what it writes in the console code page while the worker reads UTF-8,
-                // so every path containing an accent arrived as bytes Python refused to decode. On a
-                // Spanish machine that is not an edge case, it is the Documents folder.
+                // UTF-8 in all three directions. Input is the one that gets forgotten: without it
+                // .NET writes in the console code page while the worker reads UTF-8, so any path
+                // with an accent in it arrives as bytes Python refuses to decode.
                 StandardInputEncoding = Utf8NoBom,
                 StandardOutputEncoding = Utf8NoBom,
                 StandardErrorEncoding = Utf8NoBom,
@@ -272,8 +251,8 @@ public sealed class MarkItDownConverter(
         }
 
         /// <summary>
-        /// Sends one path and waits for its reply. Returns null when the worker died instead of
-        /// answering, and throws <see cref="OperationCanceledException"/> if it went quiet for too long.
+        /// Sends one path and waits for the reply. Null when the worker died instead of answering;
+        /// throws <see cref="OperationCanceledException"/> if it went quiet for too long.
         /// </summary>
         public async Task<string?> RequestAsync(string path, TimeSpan timeout, CancellationToken cancellationToken)
         {
@@ -288,8 +267,7 @@ public sealed class MarkItDownConverter(
             }
             catch (Exception ex) when (ex is IOException or ObjectDisposedException)
             {
-                // Writing to a dead worker: treat it like any other unexpected death.
-                return null;
+                return null;   // Writing to a dead worker is just another way of it dying.
             }
         }
 

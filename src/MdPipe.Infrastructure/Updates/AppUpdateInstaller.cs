@@ -13,8 +13,8 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly string? _executablePath;
 
-    /// <param name="executablePath">Which file to replace. Overridable so tests can exercise the
-    /// swap against a throwaway file instead of the process running them.</param>
+    /// <param name="executablePath">Which file to replace. Overridable so tests can swap a
+    /// throwaway file instead of the process running them.</param>
     public AppUpdateInstaller(
         ILogger<AppUpdateInstaller> logger,
         IHttpClientFactory httpClientFactory,
@@ -26,14 +26,14 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
     }
 
     /// <summary>
-    /// Marks the executable being replaced. Windows allows renaming one that is running but not
-    /// deleting it, so the outgoing version waits here until the next launch.
+    /// Windows allows renaming a running executable but not deleting it, so the outgoing version
+    /// waits under this suffix until the next launch.
     /// </summary>
     private const string RetiredSuffix = ".old";
 
     /// <summary>
-    /// Where the running executable is. Deliberately not AppContext.BaseDirectory, which for a
-    /// single-file build points at the temporary folder it unpacked itself into.
+    /// Not AppContext.BaseDirectory, which for a single-file build points at the temporary folder it
+    /// unpacked itself into.
     /// </summary>
     private string? CurrentExecutable => _executablePath ?? Environment.ProcessPath;
 
@@ -44,9 +44,8 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
             if (CurrentExecutable is not { } exe) return false;
             if (!exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
 
-            // Asked rather than assumed: a portable executable can be on read-only media, in
-            // Program Files, or on a share. Finding out after downloading 60 MB is worse than not
-            // offering it. There is no way to test this other than writing something.
+            // Asked rather than assumed, because finding out after downloading 60 MB is worse.
+            // There is no way to test this other than writing something.
             var folder = Path.GetDirectoryName(exe);
             if (folder is null) return false;
 
@@ -82,8 +81,8 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
             using var http = _httpClientFactory.CreateClient();
             http.Timeout = TimeSpan.FromMinutes(15);
 
-            // The hash first. Downloading 60 MB only to find there is nothing to check it against
-            // wastes the user's time, and an unverified executable is not going to be run anyway.
+            // Hash first: an unverified executable is not going to be run, so downloading 60 MB
+            // before finding out there's nothing to check it against wastes the user's time.
             var expected = await ExpectedHashAsync(http, update.DownloadUrl, cancellationToken);
 
             progress?.Report("Downloading MdPipe " + update.Version + "...");
@@ -98,8 +97,7 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
                     "The downloaded file does not match what the release says it should be, so it was not installed.");
             }
 
-            // Everything above can fail without consequence. Past this line the running executable
-            // moves, so it happens last and in one step.
+            // Everything above can fail without consequence. Past here the running executable moves.
             var retired = exe + RetiredSuffix;
             TryDelete(retired);
             File.Move(exe, retired);
@@ -110,8 +108,7 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
             }
             catch
             {
-                // Putting the old one back matters more than reporting the failure neatly: leaving
-                // no executable at all would be the one genuinely unrecoverable outcome.
+                // Leaving no executable at all is the one genuinely unrecoverable outcome.
                 File.Move(retired, exe);
                 throw;
             }
@@ -140,8 +137,8 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
 
     /// <summary>
     /// Reads the hash published next to the release asset. Its absence stops the update: running an
-    /// executable nobody checked is worse than making the user fetch it from the browser, which at
-    /// least brings SmartScreen along.
+    /// executable nobody checked is worse than sending the user to the browser, which at least
+    /// brings SmartScreen along.
     /// </summary>
     private static async Task<string> ExpectedHashAsync(
         HttpClient http, string downloadUrl, CancellationToken cancellationToken)
@@ -162,8 +159,7 @@ public sealed class AppUpdateInstaller : IAppUpdateInstaller
             throw new AppUpdateException(
                 "Could not fetch the checksum for this release, so the download could not be verified.", ex);
         }
-        // A timeout arrives as a cancellation, the same trap as the manifest fetch. The caller's own
-        // cancellation is left alone.
+        // A timeout arrives as a cancellation, same trap as the manifest fetch.
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             throw new AppUpdateException("Timed out fetching the checksum for this release.", ex);
