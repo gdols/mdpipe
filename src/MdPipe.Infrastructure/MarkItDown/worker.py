@@ -8,15 +8,13 @@ per line from stdout.
     {"path": "C:\\docs\\report.pdf", "ok": true,  "markdown": "..."}
     {"path": "C:\\docs\\broken.xlsx", "ok": false, "error": "File is not a zip file"}
 
-JSON because converted Markdown can contain anything at all, including newlines and quotes, and
-escaping that correctly is a solved problem not worth re-solving with a delimiter of our own.
+JSON because converted Markdown can contain anything, newlines and quotes included.
 
-Run with --formats it does a different job: it reports what the installed MarkItDown can actually
-read, so MdPipe never has to keep a hand-written copy of somebody else's capabilities.
+Run with --formats it does a different job: it reports what the installed MarkItDown can read, so
+MdPipe never has to keep a hand-written copy of somebody else's capabilities.
 
 Every conversion is wrapped, so a document that blows up is reported and the next one still runs.
-Only a hard crash of the interpreter itself ends the loop, and MdPipe restarts the worker when it
-sees the pipe close.
+Only a hard crash ends the loop, and MdPipe restarts the worker when it sees the pipe close.
 """
 
 import json
@@ -33,8 +31,7 @@ def one_line(exc):
     """Boil an exception down to a single useful line.
 
     MarkItDown wraps converter failures in a multi-line summary whose last line holds the actual
-    cause. A batch listing becomes unreadable if every failure spills over several lines, so we
-    keep the part that says what actually went wrong.
+    cause, and a batch listing is unreadable if every failure spills over several lines.
     """
     text = str(exc).strip()
     if not text:
@@ -48,18 +45,12 @@ def one_line(exc):
 def describe_formats():
     """Report what this MarkItDown build can read.
 
-    Two things here are held together with tape, and both are deliberate.
-
-    MarkItDown offers no public way to list its converters, so this reaches for the private
-    _converters. And the extensions live in module-level constants whose names are not consistent:
-    most modules use ACCEPTED_FILE_EXTENSIONS while the spreadsheet ones use
-    ACCEPTED_XLSX_FILE_EXTENSIONS and ACCEPTED_XLS_FILE_EXTENSIONS, so matching on the suffix rather
-    than an exact name is what keeps .xls and .xlsx from silently going missing.
-
-    Either of those can be broken by a MarkItDown release without anything else noticing, which is
-    why an empty answer is reported as a failure rather than as a catalogue with nothing in it. A
-    caller that receives "no formats" cannot tell a broken engine from an honest zero; one that
-    receives an error can, and keeps whatever it already knew.
+    Held together with tape on purpose. There is no public way to list the converters, hence the
+    private _converters, and the extension constants are not named consistently (most modules use
+    ACCEPTED_FILE_EXTENSIONS, the spreadsheet ones use ACCEPTED_XLSX_FILE_EXTENSIONS), hence the
+    match on the suffix. Either can break in any release, which is why an empty answer is an error
+    rather than a catalogue with nothing in it: the caller cannot tell a broken engine from an
+    honest zero, but it can act on an error and keep what it already knew.
     """
     from markitdown import MarkItDown
 
@@ -103,13 +94,10 @@ def describe_formats():
 
 
 def main():
-    # MdPipe sets PYTHONIOENCODING, but being explicit costs nothing and keeps accented text intact
-    # even if the worker is ever run by hand.
+    # MdPipe sets PYTHONIOENCODING, but being explicit keeps accented text intact if the worker is
+    # ever run by hand. errors="replace" is the seat belt: a decode error in the loop below would be
+    # raised outside every try in this file and kill the interpreter mid-batch.
     sys.stdout.reconfigure(encoding="utf-8", newline="\n")
-    # errors="replace" is the seat belt. A path arriving in the wrong encoding used to raise inside
-    # the "for line in sys.stdin" below, which sits outside every try in this file, so the
-    # interpreter died and took the rest of the batch's turn with it. Replacing the bad bytes turns
-    # that into one file reported as missing, which is survivable and closer to what happened.
     sys.stdin.reconfigure(encoding="utf-8", errors="replace")
 
     try:

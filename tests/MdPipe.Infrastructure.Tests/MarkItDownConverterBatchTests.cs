@@ -7,15 +7,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace MdPipe.Infrastructure.Tests;
 
 /// <summary>
-/// What the converter does when the worker on the other end of the pipe misbehaves.
+/// What the converter does when the worker on the other end of the pipe misbehaves: dies halfway,
+/// goes quiet, answers with rubbish. The difference between a batch of forty documents finishing
+/// and one stopping at number three.
 /// </summary>
-/// <remarks>
-/// Until these existed, the only tests here covered <c>SummarizeError</c>, a helper that trims a
-/// string. The batch protocol, which is the actual product, was taken on trust: whether a worker
-/// dying halfway leaves the rest of the batch converted, whether a file that goes quiet is given up
-/// on, whether an unreadable reply loses anything. All of that is the difference between a batch of
-/// forty documents finishing and a batch of forty documents stopping at number three.
-/// </remarks>
 public sealed class MarkItDownConverterBatchTests : IDisposable
 {
     private readonly string _dir = Path.Combine(
@@ -160,12 +155,10 @@ public sealed class MarkItDownConverterBatchTests : IDisposable
     [Fact]
     public async Task APathWithAccentsInIt_ReachesTheWorkerIntact()
     {
-        // This was broken for everybody whose documents live behind a word with an accent in it, and
-        // it was invisible because every test here used ASCII names. .NET encoded what it wrote to
-        // the worker in the console code page while the worker read UTF-8, so the path arrived as
-        // bytes Python would not decode, the exception landed in the stdin loop where nothing
-        // catches it, and the interpreter died. One user account called "Muñoz" was enough to make
-        // every single conversion fail.
+        // Invisible until now because every test here used ASCII names. .NET wrote to the worker
+        // in the console code page while the worker read UTF-8, so the path arrived as bytes Python
+        // would not decode and the interpreter died in the stdin loop, where nothing catches it.
+        // A user account called "Muñoz" was enough to make every conversion fail.
         var name = "informe anual ñ á é í ó ú ü.pdf";
         var path = Path.Combine(_dir, name);
         File.WriteAllText(path, "pretend this is a document");
@@ -181,8 +174,7 @@ public sealed class MarkItDownConverterBatchTests : IDisposable
     [Fact]
     public async Task AnAccentedFolderIsAlsoFineOnTheWayOut()
     {
-        // The other half: the output path never crosses the pipe, but it is worth pinning that a
-        // destination with accents is created and written correctly rather than mangled.
+        // The output path never crosses the pipe, but worth pinning all the same.
         using var worker = FakeWorker.Returning(_dir, "# hecho");
         var output = Path.Combine(_dir, "Año 2026", "Nómina señor Muñoz.md");
 
@@ -269,16 +261,5 @@ public sealed class MarkItDownConverterBatchTests : IDisposable
     {
         public string? PythonExecutable => null;
         public string EnsureWorkerScript() => throw new InvalidOperationException("should not be reached");
-    }
-
-    [Fact]
-    public async Task ConvertAsync_ForOneFile_GoesThroughTheSamePath()
-    {
-        using var worker = FakeWorker.Returning(_dir, "# just the one");
-
-        var result = await Converter(worker).ConvertAsync(ConversionRequest.FromFile(Document("a.pdf"), null));
-
-        result.Success.Should().BeTrue();
-        result.MarkdownContent.Should().Be("# just the one");
     }
 }

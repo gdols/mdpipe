@@ -11,7 +11,7 @@ public static class ConvertCommand
     public static Command Build(
         IMarkItDownConverter converter,
         IPythonEnvironmentManager environmentManager,
-        IManifestProvider manifestProvider,
+        IBuildManifestProvider buildManifest,
         VersionGateService versionGate,
         InputResolver inputResolver)
     {
@@ -72,10 +72,12 @@ public static class ConvertCommand
             if (resolution.Files.Count == 0)
                 return 1;
 
-            // Check the environment and the version gate once for the whole batch, not per file.
+            // Checked against the manifest this build shipped with, the same one setup installs
+            // from. The remote one can move on to a newer MarkItDown, and gating on it would block
+            // every existing copy with no way out: setup would reinstall the old pinned version.
             try
             {
-                var manifest = await manifestProvider.GetManifestAsync(cancellationToken);
+                var manifest = await buildManifest.GetManifestAsync(cancellationToken);
                 var envInfo = await environmentManager.GetEnvironmentInfoAsync(cancellationToken);
 
                 if (!envInfo.IsReady)
@@ -138,7 +140,7 @@ public static class ConvertCommand
                 if (!result.Success)
                 {
                     // Keep going: one unreadable file shouldn't cost you the other twenty-nine.
-                    Console.Error.WriteLine($"Failed: {Path.GetFileName(file)} — {result.ErrorMessage}");
+                    Console.Error.WriteLine($"Failed: {Path.GetFileName(file)}: {result.ErrorMessage}");
                     failed++;
                     continue;
                 }

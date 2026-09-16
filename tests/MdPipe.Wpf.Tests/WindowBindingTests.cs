@@ -4,7 +4,9 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using FluentAssertions;
+using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
@@ -15,22 +17,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace MdPipe.Wpf.Tests;
 
 /// <summary>
-/// Builds the real windows and lets their bindings resolve.
+/// Builds the real windows and lets their bindings resolve. Written after shipping a release that
+/// could not open: Run.Text is one of the few dependency properties WPF binds two-way by default,
+/// so pointing it at a get-only property throws the moment the window is laid out, and every other
+/// test passed because none of them touched the XAML. These assert that the window opens, nothing
+/// about how it looks.
 /// </summary>
-/// <remarks>
-/// Written after shipping a release that could not open. `Run.Text` is one of the few dependency
-/// properties WPF binds two-way by default, so pointing it at a get-only property throws the
-/// moment the window is laid out. Every other test passed, because none of them ever touched the
-/// XAML: the view model was exercised directly and the markup was taken on trust.
-/// <para>
-/// These do not assert anything about how the window looks. They assert that it opens, which is
-/// the part that was silently not covered.
-/// </para>
-/// </remarks>
 [Collection("ui-strings")]
 public sealed class WindowBindingTests : IDisposable
 {
-
     private readonly string _dir = Path.Combine(
         Path.GetTempPath(), "mdpipe-binding-tests", Guid.NewGuid().ToString("N"));
 
@@ -57,6 +52,45 @@ public sealed class WindowBindingTests : IDisposable
         var viewModel = await BuildViewModelAsync(announcing: null);
 
         OnUiThread(() => ForceLayout(new MainWindow { DataContext = viewModel }));
+    }
+
+    [Fact]
+    public async Task AfterAFailedStart_TheUpdateLinkCanBeClicked()
+    {
+        // On this path the notice only arrives after a network call, once the window has settled,
+        // and WPF only re-asks a command whether it can run when something tells it to. The link
+        // showed up greyed out and the first click did nothing, on exactly the screen it was for.
+        var viewModel = BuildViewModel(announcing: "9.9.9", brokenEnvironment: true, slowManifest: true);
+        Hyperlink? link = null;
+
+        OnUiThread(() =>
+        {
+            var window = new MainWindow { DataContext = viewModel };
+            ForceLayout(window);
+            link = FindHyperlink(window, "UpdateNotice.InstallCommand");
+        });
+
+        await UiThread.InvokeAsync(viewModel.InitializeAsync).Task.Unwrap();
+        UiThread.Invoke(() => { }, DispatcherPriority.SystemIdle);
+
+        viewModel.UpdateNotice.HasNotice.Should().BeTrue();
+        link.Should().NotBeNull();
+        UiThread.Invoke(() => link!.IsEnabled).Should().BeTrue("the link is the whole point of the bar");
+    }
+
+    /// <summary>Finds a hyperlink by the binding path of its command, which is what the XAML names.</summary>
+    private static Hyperlink? FindHyperlink(DependencyObject root, string commandPath)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is Hyperlink link &&
+                link.GetBindingExpression(Hyperlink.CommandProperty)?.ParentBinding.Path.Path == commandPath)
+                return link;
+
+            if (FindHyperlink(child, commandPath) is { } found) return found;
+        }
+
+        return null;
     }
 
     [Fact]
@@ -93,14 +127,25 @@ public sealed class WindowBindingTests : IDisposable
     /// </remarks>
     private async Task<MainViewModel> BuildViewModelAsync(string? announcing)
     {
+        var viewModel = BuildViewModel(announcing);
+
+        // The bar only appears once the environment check has run, so wait for it here rather than
+        // laying out a window whose interesting half is still hidden.
+        await viewModel.InitializeAsync();
+        return viewModel;
+    }
+
+    private MainViewModel BuildViewModel(string? announcing, bool brokenEnvironment = false, bool slowManifest = false)
+    {
         var manifest = new StubManifest(announcing is null
             ? null
-            : new AppRelease(announcing, "https://example.invalid/r", DownloadUrl: "https://example.invalid/e"));
+            : new AppRelease(announcing, "https://example.invalid/r", DownloadUrl: "https://example.invalid/e"),
+            slowManifest);
 
         var formats = new FormatCatalogProvider(Path.Combine(_dir, "no-catalog.json"));
-        var environment = new StubEnvironment();
+        var environment = new StubEnvironment(brokenEnvironment);
 
-        var viewModel = new MainViewModel(
+        return new MainViewModel(
             new SetupOrchestrator(manifest, manifest, environment, new VersionGateService(),
                 NullLogger<SetupOrchestrator>.Instance),
             new StubConverter(),
@@ -112,11 +157,6 @@ public sealed class WindowBindingTests : IDisposable
             new StubInstaller(),
             UserSettings.Load(Path.Combine(_dir, "settings.json")),
             "0.1.0");
-
-        // The bar only appears once the environment check has run, so wait for it here rather than
-        // laying out a window whose interesting half is still hidden.
-        await viewModel.InitializeAsync();
-        return viewModel;
     }
 
     /// <summary>
@@ -216,24 +256,31 @@ public sealed class WindowBindingTests : IDisposable
         return ready.Task.GetAwaiter().GetResult();
     }, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    private sealed class StubManifest(AppRelease? app) : IBuildManifestProvider, IManifestProvider
+    /// <param name="slow">Answers asynchronously, the way a real network request does.</param>
+    private sealed class StubManifest(AppRelease? app, bool slow = false) : IBuildManifestProvider, IManifestProvider
     {
-        public Task<CompatibilityManifest> GetManifestAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(new CompatibilityManifest
+        public async Task<CompatibilityManifest> GetManifestAsync(CancellationToken cancellationToken = default)
+        {
+            if (slow) await Task.Delay(50, cancellationToken);
+
+            return new CompatibilityManifest
             {
                 StableVersion = "0.1.7",
                 CompatibleVersions = new List<string> { "0.1.7" }.AsReadOnly(),
                 App = app
-            });
+            };
+        }
     }
 
-    private sealed class StubEnvironment : IPythonEnvironmentManager
+    private sealed class StubEnvironment(bool broken = false) : IPythonEnvironmentManager
     {
         public Task<PythonEnvironmentInfo> GetEnvironmentInfoAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(new PythonEnvironmentInfo { IsReady = true, InstalledMarkItDownVersion = "0.1.7" });
+            Task.FromResult(broken
+                ? new PythonEnvironmentInfo { IsReady = false, MissingReason = "not set up" }
+                : new PythonEnvironmentInfo { IsReady = true, InstalledMarkItDownVersion = "0.1.7" });
 
         public Task SetupAsync(string markItDownVersion, bool forceReinstall = false, IProgress<string>? progress = null, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+            broken ? Task.FromException(new PythonEnvironmentException("cannot install")) : Task.CompletedTask;
 
         public Task<string?> GetInstalledVersionAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<string?>("0.1.7");
@@ -251,10 +298,6 @@ public sealed class WindowBindingTests : IDisposable
             await Task.CompletedTask;
             yield break;
         }
-
-        public Task<ConversionResult> ConvertAsync(
-            ConversionRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(ConversionResult.Ok(string.Empty, null));
     }
 
     private sealed class StubDialogs : IDialogService

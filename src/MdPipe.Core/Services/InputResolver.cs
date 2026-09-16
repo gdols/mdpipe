@@ -3,35 +3,28 @@ using MdPipe.Core.Models;
 namespace MdPipe.Core.Services;
 
 /// <summary>
-/// Turns whatever the user pointed at (files, folders, wildcards) into the actual list of documents to
-/// convert. Both front-ends go through here so "what counts as convertible" is decided in one place.
+/// Turns whatever the user pointed at (files, folders, wildcards) into the list of documents to
+/// convert, so both front-ends decide "what counts as convertible" the same way.
 /// </summary>
 /// <remarks>
-/// A file named explicitly is always taken, whatever its extension: if you asked for it, you meant it.
-/// Folders and wildcards are bulk selectors, so those are filtered down to what the installed
-/// MarkItDown says it can read, unless the caller asks for everything.
-/// <para>
-/// Scanning a folder can take a while (a network share, a OneDrive folder full of files that aren't
-/// downloaded yet), so the walk reports what it has found and stops when asked. Callers are expected
-/// to run it off whichever thread must stay responsive.
-/// </para>
+/// A file named explicitly is always taken, whatever its extension. Folders and wildcards are bulk
+/// selectors, so those are filtered down to what the installed MarkItDown says it can read. The walk
+/// reports progress and stops when asked, and callers run it off whichever thread must stay alive.
 /// </remarks>
 public sealed class InputResolver(FormatCatalogProvider formats)
 {
     /// <summary>
-    /// The one format decision MdPipe makes for itself. MarkItDown will happily convert Markdown, but
-    /// the output lands exactly where the input was, so a folder scan would rewrite the user's own
-    /// notes with a reformatted copy of themselves. Naming a <c>.md</c> file explicitly still works.
+    /// MarkItDown will happily convert Markdown, but the output lands where the input was, so a
+    /// folder scan would rewrite the user's own notes. Naming a .md file explicitly still works.
     /// </summary>
     private const string SelfOverwritingExtension = ".md";
 
-    /// <summary>How many new matches to collect before telling the caller, so a big scan doesn't
-    /// flood the UI thread with one notification per file.</summary>
+    /// <summary>Matches to collect between progress reports, so a big scan doesn't flood the UI.</summary>
     private const int ProgressBatch = 200;
 
     /// <param name="progress">Receives the running count of matching files, in batches.</param>
-    /// <param name="cancellationToken">Stops the walk. Whatever was found so far is still returned,
-    /// with <see cref="InputResolution.Cancelled"/> set, so cancelling costs the wait and not the work.</param>
+    /// <param name="cancellationToken">Stops the walk. What was found so far is still returned, so
+    /// cancelling costs the wait and not the work.</param>
     public InputResolution Resolve(
         IEnumerable<string> inputs,
         bool recursive = false,
@@ -61,9 +54,8 @@ public sealed class InputResolver(FormatCatalogProvider formats)
                         ? ExpandWildcard(input, recursive, scan)
                         : (IReadOnlyList<string>)[];
 
-            // Nothing matched: a typo, an empty folder, a pattern that hit nothing. Worth saying out
-            // loud, because silence looks exactly like "converted everything, all good". A scan the
-            // user cut short is a different thing, though, and shouldn't be reported as a bad input.
+            // A typo, an empty folder, a pattern that hit nothing. Worth saying, because silence
+            // looks exactly like "converted everything". A scan cut short is not a bad input.
             if (matches.Count == 0)
             {
                 if (!cancellationToken.IsCancellationRequested) notFound.Add(input);
@@ -83,15 +75,13 @@ public sealed class InputResolver(FormatCatalogProvider formats)
     }
 
     /// <summary>
-    /// The set of extensions a bulk selector will pick up, or null when the caller wants everything and
-    /// is happy to let MarkItDown decide by content (which is how a file with a wrong or missing
-    /// extension gets converted at all).
+    /// The extensions a bulk selector picks up, or null to let MarkItDown decide by content, which is
+    /// how a file with a wrong or missing extension gets converted at all.
     /// </summary>
     private HashSet<string>? BuildFilter(bool includeEverything) =>
         includeEverything ? null : new HashSet<string>(formats.Get().Extensions, StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>State shared by every walk in one call: what to keep, what couldn't be opened, and how
-    /// far along we are.</summary>
+    /// <summary>State shared by every walk in one call.</summary>
     private sealed class Scan(HashSet<string>? supported, IProgress<int>? progress, CancellationToken cancellationToken)
     {
         private int _found;
@@ -124,12 +114,9 @@ public sealed class InputResolver(FormatCatalogProvider formats)
     /// Walks a tree one directory at a time, keeping the files that pass the filter.
     /// </summary>
     /// <remarks>
-    /// The manual walk is the point. <c>Directory.EnumerateFiles</c> with <c>AllDirectories</c> is lazy,
-    /// so a locked subfolder throws later, while the caller is iterating, where no try/catch of ours can
-    /// help. Going directory by directory with the eager <c>GetFiles</c>/<c>GetDirectories</c> keeps each
-    /// failure contained, and every folder we couldn't open is recorded so the caller can report it.
-    /// Filtering inside the walk rather than after it means a folder with a million files never builds a
-    /// million-entry list just to throw most of it away.
+    /// The manual walk is the point: EnumerateFiles with AllDirectories is lazy, so a locked subfolder
+    /// throws later, while the caller is iterating, where no try/catch here can help. Eager GetFiles
+    /// per directory keeps each failure contained and records the folders we couldn't open.
     /// </remarks>
     private static List<string> WalkFiles(string root, string mask, bool recursive, Scan scan)
     {
@@ -161,16 +148,13 @@ public sealed class InputResolver(FormatCatalogProvider formats)
             }
         }
 
-        // Sorted per expansion rather than across the whole call: a folder should come out in a
-        // predictable order, but files the user named by hand keep the order they typed them in.
+        // Per expansion, not across the whole call: a folder comes out in a predictable order, but
+        // files named by hand keep the order they were typed in.
         results.Sort(StringComparer.OrdinalIgnoreCase);
         return results;
     }
 
-    /// <summary>
-    /// Expands patterns like <c>*.pdf</c> or <c>docs\report?.docx</c>. Windows shells hand wildcards
-    /// through untouched, so the expansion has to happen here.
-    /// </summary>
+    /// <summary>Expands patterns like *.pdf. Windows shells hand wildcards through untouched.</summary>
     private static List<string> ExpandWildcard(string pattern, bool recursive, Scan scan)
     {
         var directory = Path.GetDirectoryName(pattern);

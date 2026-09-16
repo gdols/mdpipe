@@ -10,6 +10,7 @@ public static class StatusCommand
 {
     public static Command Build(
         IPythonEnvironmentManager environmentManager,
+        IBuildManifestProvider buildManifest,
         IManifestProvider manifestProvider,
         VersionGateService versionGate,
         AppUpdateService appUpdates)
@@ -36,7 +37,8 @@ public static class StatusCommand
 
             try
             {
-                var manifest = await manifestProvider.GetManifestAsync(cancellationToken);
+                // What this build installs and accepts. The remote manifest is only asked about updates.
+                var manifest = await buildManifest.GetManifestAsync(cancellationToken);
                 Console.WriteLine($"  Manifest stable   : {manifest.StableVersion}");
                 Console.WriteLine($"  Manifest updated  : {manifest.UpdatedAt}");
                 Console.WriteLine($"  Compatible set    : [{string.Join(", ", manifest.CompatibleVersions)}]");
@@ -47,8 +49,8 @@ public static class StatusCommand
                     Console.WriteLine($"  Version gate      : {(compatible ? "PASS" : "FAIL: run 'mdpipe setup'")}");
                 }
 
-                // Rides the manifest that was just fetched, so this costs no extra request.
-                if (appUpdates.CheckFor(manifest.App, RunningVersion) is { } update)
+                var remote = await manifestProvider.GetManifestAsync(cancellationToken);
+                if (appUpdates.CheckFor(remote.App, RunningVersion) is { } update)
                 {
                     Console.WriteLine();
                     Console.WriteLine($"  MdPipe {RunningVersion} is running; {update.Version} is out: {update.ReleaseUrl}");

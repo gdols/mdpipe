@@ -45,9 +45,7 @@ public sealed class CachedManifestProvider : IManifestProvider
         }
         catch (ManifestException ex)
         {
-            // An expired cache used to be thrown away outright, which sent an offline machine all the
-            // way down to the copy baked into the build. Yesterday's answer is a much better guess
-            // than one from whenever this version was released.
+            // Yesterday's answer beats the copy baked into the build whenever this was released.
             if (!TryReadCache(out var stale, ignoreAge: true)) throw;
 
             _logger.LogWarning(

@@ -101,10 +101,7 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         }
     }
 
-    /// <summary>
-    /// A folder is being walked. Separate from <see cref="IsConverting"/> because the two overlap in
-    /// nothing except needing a way out: scanning a network share can take longer than the conversion.
-    /// </summary>
+    /// <summary>A folder is being walked, which on a network share can outlast the conversion.</summary>
     public bool IsScanning
     {
         get => _isScanning;
@@ -168,8 +165,8 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
     }
 
     /// <summary>
-    /// Try every file a folder holds instead of only the known formats, letting the engine decide by
-    /// content. Off by default, or scanning an ordinary folder would fill the list with .exe and .dll.
+    /// Try every file instead of only the known formats. Off by default, or scanning an ordinary
+    /// folder would fill the list with .exe and .dll.
     /// </summary>
     public bool IncludeEverything
     {
@@ -199,17 +196,10 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
     }
 
     /// <summary>
-    /// Gets the engine ready, and either way works out whether to mention a newer MdPipe.
+    /// Gets the engine ready, and either way works out whether to mention a newer MdPipe. Somebody
+    /// looking at a failed start is the person most likely to be helped by hearing a newer version
+    /// exists, so no path here leaves without deciding.
     /// </summary>
-    /// <remarks>
-    /// The notice used to be worked out only on the way through a run that finished, so a first
-    /// launch that failed showed nothing. That is backwards: somebody looking at an error is the
-    /// person most likely to be helped by hearing that a newer version exists, and the release that
-    /// fixed the Python 3.14 failure could not reach any of the people it was written for.
-    /// <para>
-    /// No path may leave without deciding, which is why the failure branches no longer return early.
-    /// </para>
-    /// </remarks>
     private async Task PrepareEnvironmentAsync(bool forceReinstall)
     {
         AppRelease? announced = null;
@@ -224,8 +214,7 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
             IsReady = true;
             StatusMessage = string.Format(Strings.ReadyWithVersion, result.Version);
 
-            // The manifest is already fetched, cached and falls back on its own, so learning whether
-            // a newer MdPipe exists costs nothing extra and works the same when offline.
+            // Came back with the setup, so it cost nothing extra and works the same offline.
             announced = result.App;
             runFinished = true;
         }
@@ -271,20 +260,16 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
             IsBusy = false;
         }
 
-        // Only asked separately when the run did not get far enough to bring the answer back, which
-        // is one request on a path that was already going slowly, and none at all on the happy one.
+        // One request, only on a path that was already going slowly. None at all on the happy one.
         if (!runFinished) announced = await LatestReleaseOrNothingAsync();
 
         UpdateNotice.Consider(announced, mightBeTheFix: !IsReady);
     }
 
     /// <summary>
-    /// What the repository says the newest release is, or nothing at all.
+    /// Reached when something has already gone wrong, so it must not throw on top of it. Losing the
+    /// answer costs the notice, which is where we were anyway.
     /// </summary>
-    /// <remarks>
-    /// Reached when something has already gone wrong, so it must not be able to make things worse
-    /// by throwing on top. Losing the answer costs the notice, which is where we were anyway.
-    /// </remarks>
     private async Task<AppRelease?> LatestReleaseOrNothingAsync()
     {
         try
@@ -298,11 +283,10 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
     }
 
     /// <summary>
-    /// Preparing the environment failed. Before saying so, ask the engine on disk whether it works:
-    /// if it does, that is the answer that matters. Checking the version is a nicety, converting is
-    /// the job, and refusing to do the job because a version check timed out is the wrong trade.
+    /// Setup failed. Before saying so, ask the engine on disk whether it works anyway: refusing to
+    /// convert because a version check timed out is the wrong trade.
     /// </summary>
-    /// <returns>True when the app was put into a usable state and the caller should stop.</returns>
+    /// <returns>True when the app ended up usable after all.</returns>
     private async Task<bool> UsableEnvironmentSurvivedAsync()
     {
         try
@@ -322,23 +306,16 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
     }
 
     /// <summary>
-    /// Expands what was dropped and adds the documents to the list.
+    /// Expands what was dropped and adds the documents to the list. The walk runs off the UI thread,
+    /// or a big folder on a network share freezes the window. Only a conversion blocks this: the
+    /// first run spends minutes downloading Python and a drop during it should still land.
     /// </summary>
-    /// <remarks>
-    /// The walk runs off the UI thread. It used to run on it, which meant dropping a large folder, a
-    /// network share or a OneDrive folder full of files that aren't downloaded yet froze the window
-    /// with no progress and no way out.
-    /// <para>
-    /// Only a conversion blocks this. Preparing the environment no longer does: the first run spends
-    /// minutes downloading Python, and a drop during that used to be discarded without a word.
-    /// </para>
-    /// </remarks>
     public async Task AddFilesAsync(IEnumerable<string> paths)
     {
         if (IsConverting) return;
 
-        // A drop while another scan is running joins it and shares its cancellation; a drop with
-        // nothing running always starts from a fresh token, so cancelling once doesn't poison the next.
+        // A drop during another scan joins it and shares its cancellation. A drop with nothing
+        // running starts a fresh token, so cancelling once doesn't poison the next one.
         if (_activeScans == 0)
         {
             _scanCts?.Dispose();
@@ -375,8 +352,8 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
             }
         }
 
-        // Built here rather than before the walk: two folders dropped in quick succession scan at the
-        // same time, and the second one has to see what the first one already added.
+        // Built after the walk, not before: two folders dropped together scan at the same time, and
+        // the second has to see what the first added.
         var existing = Files.Select(f => f.SourcePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var added = 0;
 
@@ -391,18 +368,15 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
     }
 
     /// <summary>
-    /// What the status bar says once a scan finishes. Anything the user needs to know wins over the
-    /// message that was there before; otherwise the previous one comes back, because "Ready" is more
-    /// useful to look at than a stale count.
+    /// What the status bar says once a scan finishes. Anything worth knowing wins; otherwise the
+    /// previous message comes back, since "Ready" beats a count that stopped moving.
     /// </summary>
     private static string Summarize(InputResolution resolution, int added, string previous)
     {
-        // A cancelled scan found whatever it found. Saying so beats leaving a count that stopped moving.
         if (resolution.Cancelled)
             return string.Format(Strings.ScanCancelled, added);
 
-        // Folders we couldn't open would otherwise vanish without a trace, and a partial list of files
-        // looks exactly like a complete one.
+        // A partial list looks exactly like a complete one, so folders we couldn't open must be said.
         if (resolution.Unreadable.Count > 0)
             return resolution.Unreadable.Count == 1
                 ? Strings.SkippedFolderOne
@@ -429,8 +403,8 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
             var converted = 0;
             var renamed = 0;
 
-            // Destinations first: the whole batch goes to the worker at once, which is what lets a
-            // single Python process handle all of them instead of paying the two-second import per file.
+            // Destinations first: the batch goes to the worker in one go, which is what lets one
+            // Python process handle all of them instead of paying the two-second import per file.
             var requests = new List<ConversionRequest>(pending.Count);
             foreach (var file in pending)
             {
