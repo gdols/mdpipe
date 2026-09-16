@@ -5,7 +5,7 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
-## Unreleased
+## 0.7.1
 
 - **Fixed: a first run that failed on machines with Python 3.14.** MdPipe accepted any system Python
   from 3.10 upwards and built its environment on it, but MarkItDown's own dependencies do not go
