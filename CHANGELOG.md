@@ -5,6 +5,19 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
+## Unreleased
+
+- **Fixed: a first run that failed on machines with Python 3.14.** MdPipe accepted any system Python
+  from 3.10 upwards and built its environment on it, but MarkItDown's own dependencies do not go
+  that high yet, so the install died partway through with a wall of pip output. The bundled Python
+  that would have worked was sitting there unused. MdPipe now ignores a system Python it cannot
+  install on, and uses its own. Anyone already stuck this way is repaired on the next launch,
+  without having to do anything.
+- If the install fails anyway on a system Python, MdPipe now retries with the one it brings, which
+  covers the next version clash rather than only this one.
+- The message when that happens says what actually went wrong. It used to suggest checking the
+  proxy, the firewall and the antivirus, which was the wrong place to look entirely.
+
 ## 0.7.0
 
 Nothing here changes what MdPipe does. It is the round after shipping a release that would not
