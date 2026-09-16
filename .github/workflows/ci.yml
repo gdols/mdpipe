@@ -15,9 +15,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      # The converter tests drive a real worker process, because what they are testing is MdPipe
-      # surviving that process misbehaving. The scripts they run import nothing, so this costs a
-      # few seconds and none of the several hundred megabytes a real MarkItDown would.
+      # The converter tests talk to a real (fake) Python worker.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

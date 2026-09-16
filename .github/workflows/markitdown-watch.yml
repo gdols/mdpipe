@@ -1,13 +1,8 @@
 ﻿name: Watch MarkItDown
 
-# MdPipe pins MarkItDown to a validated set, which is the right call, but nothing was watching
-# for new releases. The manifest stayed current because somebody remembered to look, and the
-# list of readable formats had already drifted once when nobody did.
-#
-# This looks every Monday, and when there is a version MdPipe has not validated, it installs it
-# next to the current one, converts the sample documents with both and opens an issue with the
-# differences. It never changes the manifest: accepting a version stays a decision, it just
-# stops being one that can be forgotten.
+# Every Monday: if MarkItDown has a version the manifest doesn't list, convert the sample
+# documents with it and with the current one, and open an issue with the differences.
+# It never touches the manifest.
 
 on:
   schedule:
@@ -51,8 +46,7 @@ jobs:
         run: |
           title="MarkItDown $VERSION is out"
 
-          # Searching by title rather than by label, so a rerun on Monday does not file a second
-          # copy of an issue nobody has got to yet.
+          # Don't open a duplicate if last week's issue is still open.
           existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
 
           if [ -n "$existing" ]; then
@@ -60,8 +54,6 @@ jobs:
             exit 0
           fi
 
-          # Created here rather than assumed, so the workflow does not depend on someone having
-          # set the label up by hand months earlier.
           gh label create dependencies --color 0366D6 --description "Keeping up with something MdPipe depends on" 2>/dev/null || true
 
           gh issue create --title "$title" --body-file watch-report.md --label dependencies
