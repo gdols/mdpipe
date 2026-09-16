@@ -76,6 +76,9 @@ Your files and settings are not touched. This takes about a minute on a normal c
 {0}
 
 Nothing on your computer was changed. Would you like to open the download page and do it by hand?</value></data>
+  <data name="OpenLinkFailedTitle" xml:space="preserve"><value>Couldn't open your browser. The address is:</value></data>
+  <data name="RestartFailedTitle" xml:space="preserve"><value>MdPipe was updated</value></data>
+  <data name="RestartFailedBody" xml:space="preserve"><value>The update was installed, but the new version wouldn't start from here. Close MdPipe and open it again.</value></data>
   <data name="UpdateMightFix" xml:space="preserve"><value>MdPipe {0} is out and might fix this. You have {1}.</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Get it</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Hide this until next time</value></data>

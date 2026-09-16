@@ -624,7 +624,19 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
 
         var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
-        await process.WaitForExitAsync(cancellationToken);
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelling only stopped the waiting. pip carried on downloading in the background,
+            // into the very folder a retry deletes and rebuilds, so a cancelled first run could be
+            // followed by a second one racing a process nobody could see. Take it with us.
+            try { process.Kill(entireProcessTree: true); }
+            catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException) { }
+            throw;
+        }
 
         if (process.ExitCode != 0)
         {
