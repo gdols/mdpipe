@@ -32,3 +32,5 @@ Thumbs.db
 # MarkItDown version to compare their output.
 .watch/
 watch-report.md
+
+__pycache__/
