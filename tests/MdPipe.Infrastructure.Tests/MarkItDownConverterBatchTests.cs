@@ -158,6 +158,43 @@ public sealed class MarkItDownConverterBatchTests : IDisposable
     }
 
     [Fact]
+    public async Task APathWithAccentsInIt_ReachesTheWorkerIntact()
+    {
+        // This was broken for everybody whose documents live behind a word with an accent in it, and
+        // it was invisible because every test here used ASCII names. .NET encoded what it wrote to
+        // the worker in the console code page while the worker read UTF-8, so the path arrived as
+        // bytes Python would not decode, the exception landed in the stdin loop where nothing
+        // catches it, and the interpreter died. One user account called "Muñoz" was enough to make
+        // every single conversion fail.
+        var name = "informe anual ñ á é í ó ú ü.pdf";
+        var path = Path.Combine(_dir, name);
+        File.WriteAllText(path, "pretend this is a document");
+
+        using var worker = FakeWorker.WellBehaved(_dir);   // echoes back the name it was handed
+
+        var results = await RunAsync(Converter(worker), [ConversionRequest.FromFile(path, null)]);
+
+        results[0].Success.Should().BeTrue();
+        results[0].MarkdownContent.Should().Be("# " + name, "the worker has to see the name we sent");
+    }
+
+    [Fact]
+    public async Task AnAccentedFolderIsAlsoFineOnTheWayOut()
+    {
+        // The other half: the output path never crosses the pipe, but it is worth pinning that a
+        // destination with accents is created and written correctly rather than mangled.
+        using var worker = FakeWorker.Returning(_dir, "# hecho");
+        var output = Path.Combine(_dir, "Año 2026", "Nómina señor Muñoz.md");
+
+        var results = await RunAsync(
+            Converter(worker), [ConversionRequest.FromFile(Document("a.pdf"), output)]);
+
+        results[0].Success.Should().BeTrue();
+        File.Exists(output).Should().BeTrue();
+        (await File.ReadAllTextAsync(output)).Should().Be("# hecho");
+    }
+
+    [Fact]
     public async Task WhenTheResultCannotBeSaved_ItSaysSoRatherThanClaimingSuccess()
     {
         // A folder where a file should be. Converting worked and saving did not, and reporting that

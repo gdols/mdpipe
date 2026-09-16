@@ -76,6 +76,9 @@ Tus archivos y tus preferencias no se tocan. Tarda alrededor de un minuto con un
 {0}
 
 No se ha cambiado nada en tu ordenador. ¿Quieres abrir la página de descarga y hacerlo a mano?</value></data>
+  <data name="OpenLinkFailedTitle" xml:space="preserve"><value>No se ha podido abrir el navegador. La dirección es:</value></data>
+  <data name="RestartFailedTitle" xml:space="preserve"><value>MdPipe se ha actualizado</value></data>
+  <data name="RestartFailedBody" xml:space="preserve"><value>La actualización se ha instalado, pero la versión nueva no ha arrancado desde aquí. Cierra MdPipe y vuelve a abrirlo.</value></data>
   <data name="UpdateMightFix" xml:space="preserve"><value>Ha salido MdPipe {0} y quizá arregle esto. Tú tienes la {1}.</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Descárgala</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Ocultar hasta la próxima vez</value></data>

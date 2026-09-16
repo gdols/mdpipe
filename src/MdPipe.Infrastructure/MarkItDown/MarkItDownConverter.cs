@@ -34,6 +34,12 @@ public sealed class MarkItDownConverter(
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
+    /// <summary>
+    /// UTF-8 without the byte order mark, which matters on the way in: a BOM would be written once at
+    /// the top of the pipe and the worker would read it as part of the first path it is given.
+    /// </summary>
+    private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
     public async Task<ConversionResult> ConvertAsync(ConversionRequest request, CancellationToken cancellationToken = default)
     {
         await foreach (var result in ConvertManyAsync([request], cancellationToken))
@@ -248,9 +254,14 @@ public sealed class MarkItDownConverter(
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                // Force UTF-8 so accented and non-ASCII content survives the round trip.
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
+                // Force UTF-8 in all three directions so accented and non-ASCII content survives the
+                // round trip. Input matters as much as output and is easier to forget: without it
+                // .NET encodes what it writes in the console code page while the worker reads UTF-8,
+                // so every path containing an accent arrived as bytes Python refused to decode. On a
+                // Spanish machine that is not an edge case, it is the Documents folder.
+                StandardInputEncoding = Utf8NoBom,
+                StandardOutputEncoding = Utf8NoBom,
+                StandardErrorEncoding = Utf8NoBom,
                 Environment = { ["PYTHONIOENCODING"] = "utf-8" }
             };
 

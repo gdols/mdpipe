@@ -7,6 +7,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+// Converted Markdown goes to stdout, and a Windows console defaults to a code page that cannot
+// represent most of what comes out of a document. Without this, "mdpipe convert informe.pdf" turns
+// every accent into a question mark on the way to the screen. Redirected output is unaffected
+// either way, and a console that refuses the change is left exactly as it was.
+try { Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false); }
+catch (Exception ex) when (ex is System.IO.IOException or System.Security.SecurityException) { }
+
 var manifestUrl = "https://raw.githubusercontent.com/gdols/MdPipe/master/manifest/markitdown-compat.json";
 
 var host = Host.CreateDefaultBuilder(args)

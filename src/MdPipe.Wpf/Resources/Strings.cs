@@ -137,6 +137,15 @@ public static class Strings
     /// <summary>MdPipe could not update itself:</summary>
     public static string UpdateFailedBody => Get("UpdateFailedBody");
 
+    /// <summary>Couldn't open your browser. The address is:</summary>
+    public static string OpenLinkFailedTitle => Get("OpenLinkFailedTitle");
+
+    /// <summary>MdPipe was updated</summary>
+    public static string RestartFailedTitle => Get("RestartFailedTitle");
+
+    /// <summary>The update was installed, but the new version wouldn't start from here. Close MdPipe and open it again.</summary>
+    public static string RestartFailedBody => Get("RestartFailedBody");
+
     /// <summary>MdPipe {0} is out and might fix this. You have {1}.</summary>
     public static string UpdateMightFix => Get("UpdateMightFix");
 

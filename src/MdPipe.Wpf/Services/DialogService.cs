@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using MdPipe.Wpf.Resources;
 
 namespace MdPipe.Wpf.Services;
 
@@ -18,12 +19,41 @@ public sealed class DialogService : IDialogService
     public bool Confirm(string message, string title) =>
         MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
-    public void OpenLink(string url) =>
-        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    /// <remarks>
+    /// Handing a URL to Windows can fail (no browser registered, a locked-down machine), and this is
+    /// called straight from a command handler, where an exception has nowhere to go but the crash
+    /// dialog. Not reaching the release page is a disappointment; closing the app over it is not.
+    /// </remarks>
+    public void OpenLink(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException)
+        {
+            // At least leave them the address they were meant to be taken to.
+            ShowMessage(url, Strings.OpenLinkFailedTitle, DialogKind.Information);
+        }
+    }
 
+    /// <remarks>
+    /// The one moment where failing badly would be expensive: the executable has already been
+    /// replaced by the time this runs. If the new one will not start, the update is still perfectly
+    /// good on disk, so say so and stay open rather than shutting down into nothing.
+    /// </remarks>
     public void RestartWith(string executablePath)
     {
-        Process.Start(new ProcessStartInfo(executablePath) { UseShellExecute = true });
+        try
+        {
+            Process.Start(new ProcessStartInfo(executablePath) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException)
+        {
+            ShowMessage(Strings.RestartFailedBody, Strings.RestartFailedTitle, DialogKind.Warning);
+            return;
+        }
+
         Application.Current.Shutdown();
     }
 

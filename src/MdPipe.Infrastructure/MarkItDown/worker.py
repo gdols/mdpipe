@@ -106,7 +106,11 @@ def main():
     # MdPipe sets PYTHONIOENCODING, but being explicit costs nothing and keeps accented text intact
     # even if the worker is ever run by hand.
     sys.stdout.reconfigure(encoding="utf-8", newline="\n")
-    sys.stdin.reconfigure(encoding="utf-8")
+    # errors="replace" is the seat belt. A path arriving in the wrong encoding used to raise inside
+    # the "for line in sys.stdin" below, which sits outside every try in this file, so the
+    # interpreter died and took the rest of the batch's turn with it. Replacing the bad bytes turns
+    # that into one file reported as missing, which is survivable and closer to what happened.
+    sys.stdin.reconfigure(encoding="utf-8", errors="replace")
 
     try:
         from markitdown import MarkItDown
