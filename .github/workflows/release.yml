@@ -1,7 +1,6 @@
 ﻿name: Release
 
-# Tag a commit as v0.2.0 (or any v*) and this builds the portable exe
-# and attaches it to a draft release, ready to write notes and publish.
+# Push a v* tag: builds the portable exe and attaches it to a draft release.
 on:
   push:
     tags: ['v*']
@@ -19,9 +18,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      # The tag, the version the build stamps on itself and the version the manifest advertises are
-      # three separate files. Publishing a release that forgets one of them is exactly the mistake
-      # the update notice exists to avoid, so the release refuses to build instead.
+      # Tag, Directory.Build.props and the manifest have to say the same version.
       - name: The tag, the build and the manifest must agree
         shell: pwsh
         run: |
@@ -49,19 +46,13 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
 
-      # v0.6.0 passed every test and did not open: a binding that only fails once a window is
-      # laid out. The tests cover that now, but they run against the assemblies rather than the
-      # single file that people download, so this starts the actual artefact and waits for its
-      # window. It also covers what only the packed build can get wrong, like a resource that
-      # failed to embed.
+      # Start the real single-file exe and wait for its window (0.6.0 passed the tests and didn't open).
       - name: The executable has to actually open
         shell: pwsh
         run: |
           $exe = "src/MdPipe.Wpf/bin/Release/net10.0-windows/win-x64/publish/MdPipe.exe"
           $process = Start-Process $exe -PassThru
 
-          # Polled rather than slept: a cold runner unpacking 65 MB is slower than a desktop, and
-          # a fixed wait would be either flaky or wasteful.
           $title = $null
           foreach ($attempt in 1..60) {
             Start-Sleep -Seconds 1
@@ -81,8 +72,7 @@ jobs:
 
           "Window title: $title"
 
-          # The unhandled-exception dialog is titled exactly "MdPipe", so that is the shape of the
-          # 0.6.0 failure. The real window says "MdPipe - Markdown Converter".
+          # The crash dialog is titled just "MdPipe".
           if ($title -eq "MdPipe") {
             $process.Kill()
             throw "MdPipe.exe opened an error dialog instead of its window."
@@ -96,9 +86,7 @@ jobs:
           $process.Kill()
           "The executable opens."
 
-      # Published alongside the executable so a copy of MdPipe updating itself has something to
-      # check the download against. Without it the updater refuses and sends the user to the
-      # browser instead, which is the safe direction to fail in but a worse experience.
+      # The in-app updater won't install a download it can't check against this.
       - name: Write down the checksum
         shell: pwsh
         run: |
@@ -115,7 +103,7 @@ jobs:
           $assets = @("$dir/MdPipe.exe#MdPipe.exe", "$dir/MdPipe.exe.sha256#MdPipe.exe.sha256")
           gh release view ${{ github.ref_name }} 2>$null
           if ($LASTEXITCODE -eq 0) {
-            # The release was created by hand; just make sure it carries the freshly built exe.
+            # Release already exists, just replace the files.
             gh release upload ${{ github.ref_name }} $assets --clobber
           } else {
             gh release create ${{ github.ref_name }} --draft --title "MdPipe ${{ github.ref_name }}" --generate-notes $assets

@@ -1,12 +1,7 @@
 """Checks whether MarkItDown has released a version MdPipe has not validated yet.
 
-Nothing watched PyPI before, so the compatibility manifest stayed current only because
-somebody remembered to look. The list of readable formats had already drifted once for exactly
-that reason.
-
-This does not decide anything. It installs the new version alongside the validated one,
-converts the sample documents with both, and reports what changed. Advancing stableVersion is
-still a person's call; the point is that the call gets made instead of forgotten.
+Installs the new version next to the validated one, converts the sample documents with both
+and writes a report of what changed. Updating the manifest is still done by hand.
 
 Run by .github/workflows/markitdown-watch.yml, or by hand:
 
