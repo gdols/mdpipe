@@ -20,9 +20,8 @@ public sealed class DialogService : IDialogService
         MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
     /// <remarks>
-    /// Handing a URL to Windows can fail (no browser registered, a locked-down machine), and this is
-    /// called straight from a command handler, where an exception has nowhere to go but the crash
-    /// dialog. Not reaching the release page is a disappointment; closing the app over it is not.
+    /// Handing a URL to Windows can fail, and this is called straight from a command handler, where
+    /// an exception has nowhere to go but the crash dialog.
     /// </remarks>
     public void OpenLink(string url)
     {
@@ -38,9 +37,8 @@ public sealed class DialogService : IDialogService
     }
 
     /// <remarks>
-    /// The one moment where failing badly would be expensive: the executable has already been
-    /// replaced by the time this runs. If the new one will not start, the update is still perfectly
-    /// good on disk, so say so and stay open rather than shutting down into nothing.
+    /// The executable has already been replaced by the time this runs. If the new one will not
+    /// start, the update is still good on disk, so say so rather than shutting down into nothing.
     /// </remarks>
     public void RestartWith(string executablePath)
     {
@@ -73,7 +71,7 @@ public sealed class DialogService : IDialogService
         }
         catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception)
         {
-            // Not being able to open Explorer is not worth interrupting anyone over.
+            // Not worth interrupting anyone over.
         }
     }
 }

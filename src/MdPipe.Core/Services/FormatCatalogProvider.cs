@@ -4,24 +4,13 @@ using MdPipe.Core.Models;
 namespace MdPipe.Core.Services;
 
 /// <summary>
-/// Answers "what can MdPipe read?" from the engine actually installed on this machine.
+/// Answers "what can MdPipe read?" from the engine actually installed on this machine. Setup asks
+/// MarkItDown what its converters accept and writes the answer next to the environment; this reads
+/// that file, with a baseline underneath so a fresh install works before setup has finished.
 /// </summary>
-/// <remarks>
-/// Setup asks MarkItDown what its converters accept and writes the answer next to the environment;
-/// this reads that file. Keeping a hand-written copy of another project's capabilities was the old
-/// approach, and it had already drifted: three formats were missing and two that no longer had a
-/// converter were still listed.
-/// <para>
-/// Same shape as the compatibility manifest: a cached answer with a baseline underneath, so a fresh
-/// install works before the first setup has finished and a deleted cache is never fatal.
-/// </para>
-/// </remarks>
 public sealed class FormatCatalogProvider
 {
-    /// <summary>
-    /// What MdPipe ships knowing, taken from MarkItDown 0.1.7. Only used until setup writes the real
-    /// answer, and flagged as a baseline so the UI can say so.
-    /// </summary>
+    /// <summary>What MdPipe ships knowing, from MarkItDown 0.1.7, until setup writes the real answer.</summary>
     private static readonly FormatCatalog Baseline = new(
         EngineVersion: "bundled list",
         Extensions:
@@ -43,13 +32,10 @@ public sealed class FormatCatalogProvider
     private FormatCatalog? _cached;
     private DateTime _cachedStamp;
 
-    /// <param name="catalogPath">Where setup left the answer. Overridable so tests stay off the real machine.</param>
+    /// <param name="catalogPath">Where setup left the answer. Overridable for tests.</param>
     public FormatCatalogProvider(string? catalogPath = null) => _path = catalogPath ?? DefaultPath;
 
-    /// <summary>
-    /// The current catalog, re-read whenever the file on disk changes so a finished setup takes effect
-    /// without restarting the app.
-    /// </summary>
+    /// <summary>Re-read whenever the file changes, so a finished setup takes effect without a restart.</summary>
     public FormatCatalog Get()
     {
         lock (_gate)
@@ -69,7 +55,7 @@ public sealed class FormatCatalogProvider
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
             {
-                // Never fatal: not knowing the exact list is far better than refusing to convert.
+                // Never fatal: not knowing the list beats refusing to convert.
                 return _cached = Baseline;
             }
         }

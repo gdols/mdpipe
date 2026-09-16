@@ -3,19 +3,11 @@ using MdPipe.Core.Interfaces;
 namespace MdPipe.Infrastructure.Tests;
 
 /// <summary>
-/// A conversion worker that misbehaves on request.
+/// A conversion worker that misbehaves on request: a throwaway script speaking the same line-based
+/// protocol as the real one, which can be told to die, hang, or answer with rubbish. Python,
+/// because that way the pipe, the encoding and the line buffering are the real ones. It never
+/// imports MarkItDown, so it costs a process start and nothing else.
 /// </summary>
-/// <remarks>
-/// The converter's whole job is surviving another process going wrong, and none of that could be
-/// tested while the only way to get a worker was to install several hundred megabytes of Python
-/// packages and hope one of them died on cue. This writes a throwaway script that speaks the same
-/// line-based protocol as the real one and can be told to die, hang, or answer with rubbish.
-/// <para>
-/// Python because that is what MdPipe genuinely talks to, so the pipe, the encoding and the line
-/// buffering are the real ones rather than an approximation. The script never imports MarkItDown,
-/// so it costs a process start and nothing else.
-/// </para>
-/// </remarks>
 public sealed class FakeWorker : IConversionWorkerSource, IDisposable
 {
     private readonly string _folder;
@@ -34,8 +26,8 @@ public sealed class FakeWorker : IConversionWorkerSource, IDisposable
     public string EnsureWorkerScript() => ScriptPath;
 
     /// <summary>
-    /// Everything the behaviours below share: unbuffered line reading, and a reply helper. The reply
-    /// carries the process id so a test can tell whether it is still talking to the same worker.
+    /// What the behaviours below share. The reply carries the process id so a test can tell whether
+    /// it is still talking to the same worker.
     /// </summary>
     private const string Preamble =
         """

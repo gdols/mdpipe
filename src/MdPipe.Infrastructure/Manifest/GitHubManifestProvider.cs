@@ -21,10 +21,9 @@ public sealed class GitHubManifestProvider(
         {
             throw new ManifestException($"Failed to fetch manifest: {ex.Message}", ex);
         }
-        // HttpClient reports its own timeout as a cancellation rather than as a request failure.
-        // Without this, a proxy that accepts the connection and then says nothing sends a
-        // TaskCanceledException straight past the fallback chain, and MdPipe refuses to start on a
-        // machine where the engine is installed and working. Real cancellation still propagates.
+        // HttpClient reports its own timeout as a cancellation, not a request failure. Without
+        // this, a proxy that accepts the connection and then says nothing sends a
+        // TaskCanceledException straight past the fallback chain. Real cancellation still propagates.
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             throw new ManifestException(

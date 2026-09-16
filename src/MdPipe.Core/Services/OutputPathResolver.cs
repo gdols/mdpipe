@@ -3,18 +3,12 @@ using MdPipe.Core.Models;
 namespace MdPipe.Core.Services;
 
 /// <summary>
-/// Works out where each converted document goes, making sure one batch never writes two documents to
-/// the same file. Create one per run: it remembers the paths it has already handed out.
+/// Works out where each converted document goes. Create one per run: it remembers what it handed out.
 /// </summary>
 /// <remarks>
-/// Converting a folder tree into a single output folder flattens it, so <c>2025\report.pdf</c> and
-/// <c>2026\report.pdf</c> both want to be <c>report.md</c>. Rather than let the second quietly replace
-/// the first, the name is given a suffix and the caller is told, so nothing is lost and the run can
-/// say what it did.
-/// <para>
-/// Only clashes within the same run are avoided. Overwriting the output of an earlier run is what
-/// re-converting a folder is supposed to do, and stays untouched.
-/// </para>
+/// Converting a tree into one output folder flattens it, so 2025\report.pdf and 2026\report.pdf both
+/// want to be report.md. The second gets a suffix and the caller is told. Only clashes within the
+/// same run are avoided: overwriting an earlier run is what re-converting a folder means.
 /// </remarks>
 public sealed class OutputPathResolver
 {
@@ -33,8 +27,8 @@ public sealed class OutputPathResolver
         var candidate = Path.GetFullPath(Path.Combine(folder, name + ".md"));
         var attempt = 1;
 
-        // Also guards the case where the destination is the source itself, which happens when someone
-        // names a Markdown file explicitly. Converting a file onto itself would destroy the original.
+        // Also guards the destination being the source itself, which happens when someone names a
+        // Markdown file explicitly. Converting a file onto itself would destroy it.
         while (_used.Contains(candidate) || candidate.Equals(source, StringComparison.OrdinalIgnoreCase))
         {
             attempt++;

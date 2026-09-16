@@ -1,7 +1,6 @@
 {
   "schemaVersion": 2,
   "stableVersion": "0.1.7",
-  "minimumVersion": "0.1.5",
   "compatibleVersions": [
     "0.1.5",
     "0.1.6",

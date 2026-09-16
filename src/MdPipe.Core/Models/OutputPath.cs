@@ -1,7 +1,4 @@
 namespace MdPipe.Core.Models;
 
-/// <summary>
-/// Where a converted document should be written, and whether the name had to be changed to keep it
-/// from landing on top of something else in the same run.
-/// </summary>
+/// <param name="Renamed">The name had to change to avoid landing on another file in the same run.</param>
 public sealed record OutputPath(string FullPath, bool Renamed);

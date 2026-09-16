@@ -1,4 +1,6 @@
-﻿using MdPipe.Core.Exceptions;
+﻿using System.Windows;
+using System.Windows.Input;
+using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
@@ -9,13 +11,9 @@ using MdPipe.Wpf.Services;
 namespace MdPipe.Wpf.ViewModels;
 
 /// <summary>
-/// The bar that appears when a newer MdPipe exists, and what happens if the user says yes.
+/// The bar that appears when a newer MdPipe exists, and what happens if the user says yes. Knows
+/// nothing about files, folders or engines.
 /// </summary>
-/// <remarks>
-/// Its own class because it shares nothing with converting documents beyond the window it appears
-/// in. It knows what release the repository named, whether this copy can replace itself where it
-/// stands, and how to do that; it knows nothing about files, folders or engines.
-/// </remarks>
 public sealed class UpdateNoticeViewModel : ObservableObject
 {
     private readonly AppUpdateService _updates;
@@ -55,8 +53,7 @@ public sealed class UpdateNoticeViewModel : ObservableObject
 
     /// <summary>
     /// Whether MdPipe can replace itself where it stands. False on read-only media, under Program
-    /// Files, and anywhere else its own folder cannot be written to, which is an ordinary place for
-    /// a portable executable to be.
+    /// Files, and anywhere else a portable executable can legitimately be.
     /// </summary>
     public bool CanInstall => Update is { DownloadUrl.Length: > 0 } && _installer.CanInstall;
 
@@ -68,19 +65,17 @@ public sealed class UpdateNoticeViewModel : ObservableObject
         : string.Format(Wording(update), update.Version, _runningVersion);
 
     /// <summary>
-    /// Which of the three things to say. Offering a newer version to somebody staring at a failed
-    /// start is a different sentence from offering it to somebody whose copy is working.
+    /// Offering a newer version to somebody staring at a failed start is a different sentence from
+    /// offering it to somebody whose copy is working.
     /// </summary>
     private string Wording(AppUpdate update) =>
         _mightBeTheFix ? Strings.UpdateMightFix
         : update.Critical ? Strings.UpdateCritical
         : Strings.UpdateAvailable;
 
-    /// <summary>
-    /// Takes what the repository said about the newest release and works out whether to say anything.
-    /// </summary>
-    /// <param name="mightBeTheFix">The application could not start properly, so the newer release
-    /// is being offered as a possible remedy rather than as an improvement.</param>
+    /// <summary>Works out whether there is anything worth saying, and how to say it.</summary>
+    /// <param name="mightBeTheFix">The app could not start, so the newer release is being offered
+    /// as a possible remedy rather than as an improvement.</param>
     public void Consider(AppRelease? release, bool mightBeTheFix = false)
     {
         _update = _updates.CheckFor(release, _runningVersion);
@@ -95,16 +90,16 @@ public sealed class UpdateNoticeViewModel : ObservableObject
         OnPropertyChanged(nameof(CanInstall));
         OnPropertyChanged(nameof(ActionText));
         OnPropertyChanged(nameof(Message));
+
+        // WPF only re-asks a command whether it can run when told to. The notice can arrive after a
+        // network call, once nothing else is going to trigger that, and the link stayed greyed out.
+        Application.Current?.Dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
     }
 
     /// <summary>
-    /// Replaces MdPipe with the newer release, having asked first.
+    /// Replaces MdPipe with the newer release, having asked first. Where the executable cannot be
+    /// written it opens the release page instead, without asking: the browser is doing the work.
     /// </summary>
-    /// <remarks>
-    /// Where the executable cannot be written, this opens the release page rather than failing at
-    /// the last step, and without asking anything: there is nothing to confirm when the browser is
-    /// doing the work.
-    /// </remarks>
     private async Task InstallAsync()
     {
         if (Update is not { } update) return;
@@ -142,11 +137,7 @@ public sealed class UpdateNoticeViewModel : ObservableObject
         }
     }
 
-    /// <summary>Hides the bar for this session only.</summary>
-    /// <remarks>
-    /// Not for good. Nagging on every launch is rude, and forgetting entirely means the people this
-    /// exists for never hear about the fix again.
-    /// </remarks>
+    /// <summary>Hides the bar for this session, not for good.</summary>
     private void Dismiss()
     {
         _dismissed = true;

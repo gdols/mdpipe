@@ -5,21 +5,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace MdPipe.Infrastructure.Tests;
 
 /// <summary>
-/// The parts of the environment manager that do not need to start anything.
+/// The parts of the environment manager that do not need to start anything, run against a
+/// throwaway directory. This is the file most field failures have come out of.
 /// </summary>
-/// <remarks>
-/// This is the file every field failure has come out of: the Microsoft Store Python that reports a
-/// version and refuses to build a virtual environment, an install whose standard library had been
-/// moved, a rebuild that silently kept the old environment because the embeddable zip extracts some
-/// files read-only, a proxy that was detected and never handed to pip. It was also the only class in
-/// the project with no tests at all, because everything in it was reached through a static path into
-/// the real AppData.
-/// <para>
-/// The folder is now a constructor argument, so what follows runs against a throwaway directory.
-/// Finding a working interpreter still needs real processes and is still not covered here; what is
-/// covered is the file handling that quietly went wrong on other people's machines.
-/// </para>
-/// </remarks>
 public sealed class PythonEnvironmentManagerTests : IDisposable
 {
     private readonly string _root = Path.Combine(
@@ -219,6 +207,19 @@ public sealed class PythonEnvironmentManagerTests : IDisposable
         var act = () => Sut().TryDeleteDir(Path.Combine(_root, "python"));
 
         act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void ThePyLauncherIsAskedForUsableVersionsByNameNewestFirst()
+    {
+        // A bare "py -3" gives the newest Python installed. With 3.14 next to 3.12 that is the one
+        // MarkItDown can't be installed on, and MdPipe would download a Python the user already has.
+        if (!OperatingSystem.IsWindows()) return;
+
+        PythonEnvironmentManager.LauncherCandidates
+            .Where(c => c.Exe == "py")
+            .Select(c => c.ArgPrefix.Trim())
+            .Should().Equal("-3.13", "-3.12", "-3.11", "-3.10");
     }
 
     /// <summary>Nothing here reaches the network; asking for a client would be a bug in the test.</summary>

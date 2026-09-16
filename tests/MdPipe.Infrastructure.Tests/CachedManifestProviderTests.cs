@@ -21,7 +21,6 @@ public class CachedManifestProviderTests : IDisposable
     {
         SchemaVersion = 1,
         StableVersion = "0.1.1",
-        MinimumVersion = "0.1.0",
         CompatibleVersions = new List<string> { "0.1.0", "0.1.1" }.AsReadOnly(),
         UpdatedAt = DateOnly.FromDateTime(DateTime.Today),
         Notes = "Test"
@@ -89,7 +88,6 @@ public class CachedManifestProviderTests : IDisposable
         {
             SchemaVersion = newer.SchemaVersion,
             StableVersion = "0.1.9",
-            MinimumVersion = newer.MinimumVersion,
             CompatibleVersions = newer.CompatibleVersions,
             UpdatedAt = newer.UpdatedAt,
             Notes = newer.Notes

@@ -1,25 +1,18 @@
-﻿namespace MdPipe.Wpf.Services;
+namespace MdPipe.Wpf.Services;
 
 public enum DialogKind { Information, Warning, Error }
 
 /// <summary>
-/// Everything the view model needs from Windows itself: message boxes, the folder picker, and opening
-/// a folder in Explorer.
+/// Everything the view model needs from Windows itself. Behind an interface so tests can check what
+/// was said instead of hanging on a modal box nobody is there to dismiss.
 /// </summary>
-/// <remarks>
-/// Behind an interface for two reasons. Tests can assert that the right thing was said instead of
-/// hanging forever on a modal box nobody is there to dismiss, and the view model stops reaching
-/// straight into WPF and the shell to get its work done.
-/// </remarks>
 public interface IDialogService
 {
     void ShowMessage(string message, string title, DialogKind kind);
 
-    /// <returns>True if the user agreed. Used for the one thing MdPipe does that it should never
-    /// do without being asked: replace itself.</returns>
+    /// <returns>True if the user agreed.</returns>
     bool Confirm(string message, string title);
 
-    /// <summary>Opens a link in whatever the machine uses for links.</summary>
     void OpenLink(string url);
 
     /// <summary>Starts the given executable and closes this one, in that order.</summary>

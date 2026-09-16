@@ -302,9 +302,6 @@ public sealed class MainViewModelTests : IDisposable
         private readonly SemaphoreSlim _gate = new(0);
         public void Release() => _gate.Release();
 
-        public Task<ConversionResult> ConvertAsync(ConversionRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(ConversionResult.Ok("# converted"));
-
         public async IAsyncEnumerable<ConversionResult> ConvertManyAsync(
             IReadOnlyList<ConversionRequest> requests,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -396,7 +393,6 @@ public sealed class MainViewModelTests : IDisposable
             {
                 SchemaVersion = App is null ? 1 : 2,
                 StableVersion = "0.1.7",
-                MinimumVersion = "0.1.7",
                 CompatibleVersions = new List<string> { "0.1.7" }.AsReadOnly(),
                 UpdatedAt = DateOnly.FromDateTime(DateTime.Today),
                 Notes = string.Empty,

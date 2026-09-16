@@ -21,9 +21,8 @@ internal static class ManifestSerializer
         }
         catch (JsonException ex)
         {
-            // Wrapped here, in the one place that parses, rather than at each call site. The embedded
-            // baseline is the bottom of the fallback chain, and a raw JsonException from it would sail
-            // past FallbackManifestProvider the way the HttpClient timeout used to.
+            // Wrapped in the one place that parses. The embedded baseline is the bottom of the
+            // fallback chain, and a raw JsonException from it would sail past FallbackManifestProvider.
             throw new ManifestException($"Manifest JSON is malformed: {ex.Message}", ex);
         }
     }
@@ -32,7 +31,6 @@ internal static class ManifestSerializer
     {
         public int SchemaVersion { get; set; }
         public string StableVersion { get; set; } = string.Empty;
-        public string MinimumVersion { get; set; } = string.Empty;
         public List<string> CompatibleVersions { get; set; } = [];
         public string UpdatedAt { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
@@ -42,7 +40,6 @@ internal static class ManifestSerializer
         {
             SchemaVersion = SchemaVersion,
             StableVersion = StableVersion,
-            MinimumVersion = MinimumVersion,
             CompatibleVersions = CompatibleVersions.AsReadOnly(),
             UpdatedAt = DateOnly.TryParse(UpdatedAt, out var d) ? d : DateOnly.MinValue,
             Notes = Notes,
@@ -51,8 +48,8 @@ internal static class ManifestSerializer
     }
 
     /// <summary>
-    /// The MdPipe release block. A manifest missing it, or carrying a half-written one, has to leave
-    /// the rest of the file usable: the version gate matters more than an update notice.
+    /// The MdPipe release block. A manifest missing it, or carrying half of one, must leave the rest
+    /// of the file usable: the version gate matters more than an update notice.
     /// </summary>
     private sealed class AppDto
     {
