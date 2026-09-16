@@ -14,6 +14,31 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
 {
     private const string EmbeddedPythonVersion = "3.12.7";
 
+    /// <summary>
+    /// The Python versions this release of MdPipe can actually install MarkItDown on, as a
+    /// half-open range: 3.10 up to but not including 3.14.
+    /// </summary>
+    /// <remarks>
+    /// The lower bound is MarkItDown's own. The upper one belongs to its dependencies, which is
+    /// less obvious and is what went wrong: markitdown[all] 0.1.7 pins
+    /// <c>youtube-transcript-api~=1.0.0</c>, every version in that range declares
+    /// <c>&lt;3.14</c>, and on a machine with Python 3.14 pip finds nothing to install and gives up
+    /// partway through a first run. MdPipe had only ever checked the floor, so it accepted such a
+    /// Python, built a virtual environment on it and failed at the last step, with the bundled
+    /// interpreter that would have worked sitting there unused.
+    /// <para>
+    /// Raise the ceiling when a MarkItDown release supports a newer Python, the same way
+    /// <see cref="EmbeddedPythonVersion"/> gets raised: both are part of what a release was tested
+    /// with, not settings.
+    /// </para>
+    /// </remarks>
+    private static readonly (int Major, int Minor) OldestUsablePython = (3, 10);
+    private static readonly (int Major, int Minor) FirstUnusablePython = (3, 14);
+
+    private static string VersionIsInRange =>
+        $"({OldestUsablePython.Major},{OldestUsablePython.Minor}) <= sys.version_info[:2] < " +
+        $"({FirstUnusablePython.Major},{FirstUnusablePython.Minor})";
+
     private static readonly string DefaultRoot = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mdpipe");
 
@@ -101,13 +126,69 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
 
         var target = await EnsureInterpreterAsync(progress, cancellationToken);
 
-        logger.LogInformation("Installing markitdown[all]=={Version} into {Exe}", markItDownVersion, target);
-        progress?.Report($"Downloading MarkItDown {markItDownVersion} and its converters (the biggest part)...");
-        // Keep pip output so proxy, firewall and SSL failures reach the user.
-        await RunProcessAsync(target, $"-m pip install \"markitdown[all]=={markItDownVersion}\" --disable-pip-version-check", cancellationToken);
+        try
+        {
+            await InstallMarkItDownAsync(target, markItDownVersion, progress, cancellationToken);
+        }
+        catch (PythonEnvironmentException) when (target == VenvPython)
+        {
+            // The interpreter ran, so this is not a broken Python: it is one MarkItDown will not
+            // install on. The version check ahead of this catches the case we know about, and this
+            // catches the next one, which by definition we do not. The bundled interpreter is a
+            // version this release was tested with, so it is worth the download to try again.
+            logger.LogWarning(
+                "MarkItDown would not install on the system Python. Falling back to the bundled one.");
+            progress?.Report("That Python did not work out. Trying with the one MdPipe brings...");
+
+            TryDeleteDir(VenvRoot);
+            await BootstrapEmbeddedPythonAsync(progress, cancellationToken);
+
+            if (!File.Exists(EmbedPython))
+                throw new PythonEnvironmentException("Failed to set up the embedded Python environment.");
+
+            await InstallMarkItDownAsync(EmbedPython, markItDownVersion, progress, cancellationToken);
+        }
+
         EnsureWorkerScript();
         logger.LogInformation("Setup complete");
     }
+
+    private async Task InstallMarkItDownAsync(
+        string python, string version, IProgress<string>? progress, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Installing markitdown[all]=={Version} into {Exe}", version, python);
+        progress?.Report($"Downloading MarkItDown {version} and its converters (the biggest part)...");
+
+        try
+        {
+            // Keep pip output so proxy, firewall and SSL failures reach the user.
+            await RunProcessAsync(
+                python, $"-m pip install \"markitdown[all]=={version}\" --disable-pip-version-check",
+                cancellationToken);
+        }
+        catch (PythonEnvironmentException ex) when (LooksLikeAVersionClash(ex.Message))
+        {
+            // Telling somebody to check their firewall when the real problem is the Python they
+            // have installed sends them looking in entirely the wrong place.
+            throw new PythonEnvironmentException(
+                $"MarkItDown {version} cannot be installed on this Python. Its own dependencies do not " +
+                "support that version yet. This is not a problem with your network or your computer.\n\n" +
+                ex.Message, ex);
+        }
+    }
+
+    /// <summary>
+    /// Whether pip gave up because nothing it could install satisfied the requirements, rather than
+    /// because it could not reach anything.
+    /// </summary>
+    /// <remarks>
+    /// Matched on pip's own wording. It is worth being specific: the two failures look identical in
+    /// a dialog box and lead somewhere completely different, and the reflex is to blame the network.
+    /// </remarks>
+    internal static bool LooksLikeAVersionClash(string pipOutput) =>
+        pipOutput.Contains("require a different python version", StringComparison.OrdinalIgnoreCase) ||
+        pipOutput.Contains("No matching distribution found", StringComparison.OrdinalIgnoreCase) ||
+        pipOutput.Contains("Could not find a version that satisfies", StringComparison.OrdinalIgnoreCase);
 
     public async Task<string?> GetInstalledVersionAsync(CancellationToken cancellationToken = default)
     {
@@ -440,7 +521,7 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
             {
                 var output = await RunProcessAsync(
                     exe,
-                    argPrefix + "-c \"import sys,os,sysconfig; print(sys.executable if (sys.version_info >= (3,10) and os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py'))) else '')\"",
+                    argPrefix + $"-c \"import sys,os,sysconfig; print(sys.executable if ({VersionIsInRange} and os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py'))) else '')\"",
                     cts.Token, captureOutput: true);
 
                 var path = output.Trim();
@@ -450,7 +531,10 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
                     return path;
                 }
 
-                logger.LogWarning("Ignoring '{Exe}': its Python is too old (need 3.10+) or has no usable standard library.", exe);
+                logger.LogWarning(
+                "Ignoring '{Exe}': its Python is outside {Oldest}.x to {Newest}.x, or has no usable standard library.",
+                exe, $"{OldestUsablePython.Major}.{OldestUsablePython.Minor}",
+                $"{FirstUnusablePython.Major}.{FirstUnusablePython.Minor - 1}");
             }
             catch { }
         }
@@ -484,7 +568,7 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         {
             var output = await RunProcessAsync(
                 pythonExe,
-                "-c \"import os,sys,sysconfig; z=os.path.join(os.path.dirname(sys.executable),f'python{sys.version_info.major}{sys.version_info.minor}.zip'); ok = sys.version_info >= (3,10) and (os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py')) or os.path.isfile(z)); print('OK' if ok else '')\"",
+                $"-c \"import os,sys,sysconfig; z=os.path.join(os.path.dirname(sys.executable),f'python{{sys.version_info.major}}{{sys.version_info.minor}}.zip'); ok = {VersionIsInRange} and (os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py')) or os.path.isfile(z)); print('OK' if ok else '')\"",
                 cancellationToken, captureOutput: true);
             return output.Trim() == "OK";
         }
