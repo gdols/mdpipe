@@ -88,6 +88,14 @@ public sealed class SetupOrchestrator(
     /// Asks the repository whether a newer MdPipe has been released. Advisory only, so anything that
     /// goes wrong here costs the notice and nothing else.
     /// </summary>
+    /// <remarks>
+    /// Callable on its own because a setup that failed is when this matters most, and is exactly
+    /// when it used to be unreachable: the answer only ever came back attached to a run that
+    /// finished, so the people a newer release might rescue were the only ones never told about it.
+    /// </remarks>
+    public Task<AppRelease?> LatestReleaseAsync(CancellationToken cancellationToken = default) =>
+        AppReleaseAsync(cancellationToken);
+
     private async Task<AppRelease?> AppReleaseAsync(CancellationToken cancellationToken)
     {
         try

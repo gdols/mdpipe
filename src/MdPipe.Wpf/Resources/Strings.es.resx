@@ -76,6 +76,7 @@ Tus archivos y tus preferencias no se tocan. Tarda alrededor de un minuto con un
 {0}
 
 No se ha cambiado nada en tu ordenador. ¿Quieres abrir la página de descarga y hacerlo a mano?</value></data>
+  <data name="UpdateMightFix" xml:space="preserve"><value>Ha salido MdPipe {0} y quizá arregle esto. Tú tienes la {1}.</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Descárgala</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Ocultar hasta la próxima vez</value></data>
   <data name="SkippedFolderOne" xml:space="preserve"><value>Se omitió 1 carpeta sin permiso de lectura.</value></data>
