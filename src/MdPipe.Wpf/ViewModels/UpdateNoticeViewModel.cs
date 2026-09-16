@@ -1,4 +1,6 @@
-﻿using MdPipe.Core.Exceptions;
+﻿using System.Windows;
+using System.Windows.Input;
+using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
@@ -88,6 +90,10 @@ public sealed class UpdateNoticeViewModel : ObservableObject
         OnPropertyChanged(nameof(CanInstall));
         OnPropertyChanged(nameof(ActionText));
         OnPropertyChanged(nameof(Message));
+
+        // WPF only re-asks a command whether it can run when told to. The notice can arrive after a
+        // network call, once nothing else is going to trigger that, and the link stayed greyed out.
+        Application.Current?.Dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
     }
 
     /// <summary>

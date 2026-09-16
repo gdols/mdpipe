@@ -65,10 +65,20 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         File.Exists(VenvPython) ? VenvPython :
         File.Exists(EmbedPython) ? EmbedPython : null;
 
-    private static IEnumerable<(string Exe, string ArgPrefix)> LauncherCandidates =>
+    /// <summary>
+    /// Where to look for a system Python. On Windows the py launcher is asked for each usable version
+    /// by name, newest first: a bare "py -3" picks the newest installed, so somebody with 3.14 and
+    /// 3.12 side by side would get the one that can't be used and download a Python they already
+    /// have. The launcher is also never the Store stub, unlike a bare python on PATH.
+    /// </summary>
+    internal static IEnumerable<(string Exe, string ArgPrefix)> LauncherCandidates =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? [("py", "-3 "), ("python", ""), ("python3", "")]   // 'py' launcher is never a Store stub
+            ? [.. UsableMinorsNewestFirst.Select(minor => ("py", $"-{OldestUsablePython.Major}.{minor} ")),
+               ("python", ""), ("python3", "")]
             : [("python3", ""), ("python", "")];
+
+    private static IEnumerable<int> UsableMinorsNewestFirst =>
+        Enumerable.Range(OldestUsablePython.Minor, FirstUnusablePython.Minor - OldestUsablePython.Minor).Reverse();
 
     public async Task<PythonEnvironmentInfo> GetEnvironmentInfoAsync(CancellationToken cancellationToken = default)
     {

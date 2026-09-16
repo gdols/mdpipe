@@ -36,6 +36,7 @@ var host = Host.CreateDefaultBuilder(args)
 var converter = host.Services.GetRequiredService<IMarkItDownConverter>();
 var environmentManager = host.Services.GetRequiredService<IPythonEnvironmentManager>();
 var manifestProvider = host.Services.GetRequiredService<IManifestProvider>();
+var buildManifest = host.Services.GetRequiredService<IBuildManifestProvider>();
 var versionGate = host.Services.GetRequiredService<VersionGateService>();
 var appUpdates = host.Services.GetRequiredService<AppUpdateService>();
 var orchestrator = host.Services.GetRequiredService<SetupOrchestrator>();
@@ -44,9 +45,9 @@ var formatCatalog = host.Services.GetRequiredService<FormatCatalogProvider>();
 
 var root = new RootCommand("MdPipe: convert documents to Markdown using Microsoft MarkItDown")
 {
-    ConvertCommand.Build(converter, environmentManager, manifestProvider, versionGate, inputResolver),
+    ConvertCommand.Build(converter, environmentManager, buildManifest, versionGate, inputResolver),
     SetupCommand.Build(orchestrator),
-    StatusCommand.Build(environmentManager, manifestProvider, versionGate, appUpdates),
+    StatusCommand.Build(environmentManager, buildManifest, manifestProvider, versionGate, appUpdates),
     FormatsCommand.Build(formatCatalog)
 };
 
