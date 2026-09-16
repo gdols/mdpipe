@@ -198,8 +198,23 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         await PrepareEnvironmentAsync(forceReinstall: true);
     }
 
+    /// <summary>
+    /// Gets the engine ready, and either way works out whether to mention a newer MdPipe.
+    /// </summary>
+    /// <remarks>
+    /// The notice used to be worked out only on the way through a run that finished, so a first
+    /// launch that failed showed nothing. That is backwards: somebody looking at an error is the
+    /// person most likely to be helped by hearing that a newer version exists, and the release that
+    /// fixed the Python 3.14 failure could not reach any of the people it was written for.
+    /// <para>
+    /// No path may leave without deciding, which is why the failure branches no longer return early.
+    /// </para>
+    /// </remarks>
     private async Task PrepareEnvironmentAsync(bool forceReinstall)
     {
+        AppRelease? announced = null;
+        var runFinished = false;
+
         IsBusy = true;
         try
         {
@@ -211,7 +226,8 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
 
             // The manifest is already fetched, cached and falls back on its own, so learning whether
             // a newer MdPipe exists costs nothing extra and works the same when offline.
-            UpdateNotice.Consider(result.App);
+            announced = result.App;
+            runFinished = true;
         }
         catch (PythonNotFoundException)
         {
@@ -221,35 +237,63 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         }
         catch (PythonEnvironmentException ex)
         {
-            if (await UsableEnvironmentSurvivedAsync()) return;
-
-            IsReady = false;
-            StatusMessage = Strings.SetupUnfinishedStatus;
-            _dialogs.ShowMessage(
-                string.Format(Strings.SetupUnfinishedBody, ex.Message),
-                Strings.SetupUnfinishedTitle, DialogKind.Warning);
+            if (!await UsableEnvironmentSurvivedAsync())
+            {
+                IsReady = false;
+                StatusMessage = Strings.SetupUnfinishedStatus;
+                _dialogs.ShowMessage(
+                    string.Format(Strings.SetupUnfinishedBody, ex.Message),
+                    Strings.SetupUnfinishedTitle, DialogKind.Warning);
+            }
         }
         catch (MdPipeException ex)
         {
-            if (await UsableEnvironmentSurvivedAsync()) return;
-
-            IsReady = false;
-            StatusMessage = Strings.PrepareFailedStatus;
-            _dialogs.ShowMessage(ex.Message, Strings.PrepareFailedTitle, DialogKind.Error);
+            if (!await UsableEnvironmentSurvivedAsync())
+            {
+                IsReady = false;
+                StatusMessage = Strings.PrepareFailedStatus;
+                _dialogs.ShowMessage(ex.Message, Strings.PrepareFailedTitle, DialogKind.Error);
+            }
         }
         catch (Exception ex)
         {
-            if (await UsableEnvironmentSurvivedAsync()) return;
-
-            IsReady = false;
-            StatusMessage = Strings.SetupFailedStatus;
-            _dialogs.ShowMessage(
-                string.Format(Strings.SetupFailedBody, ex.Message),
-                Strings.SetupUnfinishedTitle, DialogKind.Error);
+            if (!await UsableEnvironmentSurvivedAsync())
+            {
+                IsReady = false;
+                StatusMessage = Strings.SetupFailedStatus;
+                _dialogs.ShowMessage(
+                    string.Format(Strings.SetupFailedBody, ex.Message),
+                    Strings.SetupUnfinishedTitle, DialogKind.Error);
+            }
         }
         finally
         {
             IsBusy = false;
+        }
+
+        // Only asked separately when the run did not get far enough to bring the answer back, which
+        // is one request on a path that was already going slowly, and none at all on the happy one.
+        if (!runFinished) announced = await LatestReleaseOrNothingAsync();
+
+        UpdateNotice.Consider(announced, mightBeTheFix: !IsReady);
+    }
+
+    /// <summary>
+    /// What the repository says the newest release is, or nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// Reached when something has already gone wrong, so it must not be able to make things worse
+    /// by throwing on top. Losing the answer costs the notice, which is where we were anyway.
+    /// </remarks>
+    private async Task<AppRelease?> LatestReleaseOrNothingAsync()
+    {
+        try
+        {
+            return await _setupOrchestrator.LatestReleaseAsync();
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 

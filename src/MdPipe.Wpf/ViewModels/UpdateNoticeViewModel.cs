@@ -1,4 +1,4 @@
-using MdPipe.Core.Exceptions;
+﻿using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
@@ -26,6 +26,7 @@ public sealed class UpdateNoticeViewModel : ObservableObject
 
     private AppUpdate? _update;
     private bool _dismissed;
+    private bool _mightBeTheFix;
 
     public UpdateNoticeViewModel(
         AppUpdateService updates,
@@ -64,16 +65,26 @@ public sealed class UpdateNoticeViewModel : ObservableObject
 
     public string Message => Update is not { } update
         ? string.Empty
-        : string.Format(
-            update.Critical ? Strings.UpdateCritical : Strings.UpdateAvailable,
-            update.Version, _runningVersion);
+        : string.Format(Wording(update), update.Version, _runningVersion);
+
+    /// <summary>
+    /// Which of the three things to say. Offering a newer version to somebody staring at a failed
+    /// start is a different sentence from offering it to somebody whose copy is working.
+    /// </summary>
+    private string Wording(AppUpdate update) =>
+        _mightBeTheFix ? Strings.UpdateMightFix
+        : update.Critical ? Strings.UpdateCritical
+        : Strings.UpdateAvailable;
 
     /// <summary>
     /// Takes what the repository said about the newest release and works out whether to say anything.
     /// </summary>
-    public void Consider(AppRelease? release)
+    /// <param name="mightBeTheFix">The application could not start properly, so the newer release
+    /// is being offered as a possible remedy rather than as an improvement.</param>
+    public void Consider(AppRelease? release, bool mightBeTheFix = false)
     {
         _update = _updates.CheckFor(release, _runningVersion);
+        _mightBeTheFix = mightBeTheFix;
         Refresh();
     }
 

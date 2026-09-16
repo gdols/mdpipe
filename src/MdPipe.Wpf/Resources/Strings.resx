@@ -76,6 +76,7 @@ Your files and settings are not touched. This takes about a minute on a normal c
 {0}
 
 Nothing on your computer was changed. Would you like to open the download page and do it by hand?</value></data>
+  <data name="UpdateMightFix" xml:space="preserve"><value>MdPipe {0} is out and might fix this. You have {1}.</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Get it</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Hide this until next time</value></data>
   <data name="SkippedFolderOne" xml:space="preserve"><value>Skipped 1 folder you do not have permission to read.</value></data>

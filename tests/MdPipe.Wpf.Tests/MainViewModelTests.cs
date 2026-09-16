@@ -150,6 +150,62 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task WhenSetupFails_TheNewerVersionIsStillOffered()
+    {
+        // The case this exists for. Somebody with Python 3.14 could not get past their first run,
+        // and the release that fixed it was the one thing they could never be told about, because
+        // the notice was only ever worked out on the way through a run that finished.
+        _environment.ThrowOnSetup = new PythonEnvironmentException("MarkItDown cannot be installed on this Python");
+        _manifest.App = new AppRelease("9.9.9", "https://example.invalid/r");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.IsReady.Should().BeFalse("the environment is still broken");
+        vm.UpdateNotice.HasNotice.Should().BeTrue("which is exactly when it is worth saying");
+        vm.UpdateNotice.Update!.Version.Should().Be("9.9.9");
+    }
+
+    [Fact]
+    public async Task WhenSetupFails_TheNoticeSaysItMightBeTheFix()
+    {
+        // Different sentence from the one somebody with a working copy gets. They are not being
+        // offered an improvement, they are being offered a way out.
+        _environment.ThrowOnSetup = new PythonEnvironmentException("nope");
+        _manifest.App = new AppRelease("9.9.9", "https://example.invalid/r");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.UpdateNotice.Message.Should().Contain("might fix this");
+    }
+
+    [Fact]
+    public async Task WhenSetupWorks_TheNoticeKeepsItsOrdinaryWording()
+    {
+        _manifest.App = new AppRelease("9.9.9", "https://example.invalid/r");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.IsReady.Should().BeTrue();
+        vm.UpdateNotice.Message.Should().NotContain("might fix this");
+    }
+
+    [Fact]
+    public async Task WhenSetupFailsAndThereIsNoNewerVersion_NothingIsOffered()
+    {
+        // A failure is not a reason to invent a notice. There has to be something newer.
+        _environment.ThrowOnSetup = new PythonEnvironmentException("nope");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        vm.IsReady.Should().BeFalse();
+        vm.UpdateNotice.HasNotice.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task FilesDroppedWhileTheEnvironmentPrepares_StillGetAdded()
     {
         // The first run spends minutes downloading Python and MarkItDown. A drop during that used to

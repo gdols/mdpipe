@@ -137,6 +137,9 @@ public static class Strings
     /// <summary>MdPipe could not update itself:</summary>
     public static string UpdateFailedBody => Get("UpdateFailedBody");
 
+    /// <summary>MdPipe {0} is out and might fix this. You have {1}.</summary>
+    public static string UpdateMightFix => Get("UpdateMightFix");
+
     /// <summary>Get it</summary>
     public static string UpdateGetIt => Get("UpdateGetIt");
 
