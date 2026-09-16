@@ -5,6 +5,21 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
+## 0.8.0
+
+- **Fixed: any document whose path had an accent in it failed to convert.** Not just the file name,
+  the whole path, so a Windows account called Muñoz or a folder called Año 2026 was enough for
+  every single file to fail with an error about a codec. MdPipe sent the path to the conversion
+  engine in the wrong encoding. It has been like this since the first release.
+- **When setup fails, MdPipe now tells you if a newer version is out**, since that newer version
+  might be the fix. It used to say nothing on exactly the screen where it mattered most.
+- If you have more than one Python installed, MdPipe picks one it can use instead of always the
+  newest. Having 3.14 next to 3.12 used to mean downloading a Python you already had.
+- Cancelling the first setup no longer leaves pip downloading in the background.
+- Opening a link, or restarting after an update, can no longer close the app if Windows refuses.
+- In the command line tool, converted text with accents prints correctly, and `convert` no longer
+  depends on the online manifest to decide whether your engine is acceptable.
+
 ## 0.7.1
 
 - **Fixed: a first run that failed on machines with Python 3.14.** MdPipe accepted any system Python

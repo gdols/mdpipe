@@ -5,7 +5,7 @@
     this number and app.latestVersion in manifest/markitdown-compat.json all agree.
   -->
   <PropertyGroup>
-    <Version>0.7.1</Version>
+    <Version>0.8.0</Version>
   </PropertyGroup>
 
 </Project>
