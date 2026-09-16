@@ -7,7 +7,7 @@
     app.latestVersion in manifest/markitdown-compat.json all say the same thing.
   -->
   <PropertyGroup>
-    <Version>0.7.0</Version>
+    <Version>0.7.1</Version>
   </PropertyGroup>
 
 </Project>
