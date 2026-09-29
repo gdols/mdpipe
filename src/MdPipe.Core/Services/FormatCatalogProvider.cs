@@ -10,7 +10,7 @@ namespace MdPipe.Core.Services;
 /// </summary>
 public sealed class FormatCatalogProvider
 {
-    /// <summary>What MdPipe ships knowing, from MarkItDown 0.1.7, until setup writes the real answer.</summary>
+    /// <summary>What MdPipe ships knowing, from MarkItDown 0.1.8, until setup writes the real answer.</summary>
     private static readonly FormatCatalog Baseline = new(
         EngineVersion: "bundled list",
         Extensions:
