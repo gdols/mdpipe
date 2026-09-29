@@ -212,14 +212,14 @@ public sealed class PythonEnvironmentManagerTests : IDisposable
     [Fact]
     public void ThePyLauncherIsAskedForUsableVersionsByNameNewestFirst()
     {
-        // A bare "py -3" gives the newest Python installed. With 3.14 next to 3.12 that is the one
+        // A bare "py -3" gives the newest Python installed. With 3.15 next to 3.12 that is one
         // MarkItDown can't be installed on, and MdPipe would download a Python the user already has.
         if (!OperatingSystem.IsWindows()) return;
 
         PythonEnvironmentManager.LauncherCandidates
             .Where(c => c.Exe == "py")
             .Select(c => c.ArgPrefix.Trim())
-            .Should().Equal("-3.13", "-3.12", "-3.11", "-3.10");
+            .Should().Equal("-3.14", "-3.13", "-3.12", "-3.11", "-3.10");
     }
 
     /// <summary>Nothing here reaches the network; asking for a client would be a bug in the test.</summary>

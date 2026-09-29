@@ -16,13 +16,13 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
 
     /// <summary>
     /// The Python versions MarkItDown can actually be installed on: 3.10 up to but not including
-    /// 3.14. The floor is MarkItDown's own; the ceiling belongs to its dependencies, which is the
-    /// less obvious half. markitdown[all] 0.1.7 pins youtube-transcript-api~=1.0.0 and every version
-    /// in that range declares &lt;3.14, so on a 3.14 machine pip finds nothing and gives up.
-    /// Raise it when a MarkItDown release supports a newer Python, like EmbeddedPythonVersion.
+    /// 3.15. The floor is MarkItDown's own; the ceiling belongs to its dependencies, which is the
+    /// less obvious half. markitdown[all] 0.1.7 pinned youtube-transcript-api~=1.0.0, which stops
+    /// at 3.13, so 3.14 was out until 0.1.8 moved it to ~=1.2.3. Check it again whenever the
+    /// pinned MarkItDown changes, the same as EmbeddedPythonVersion.
     /// </summary>
     private static readonly (int Major, int Minor) OldestUsablePython = (3, 10);
-    private static readonly (int Major, int Minor) FirstUnusablePython = (3, 14);
+    private static readonly (int Major, int Minor) FirstUnusablePython = (3, 15);
 
     private static string VersionIsInRange =>
         $"({OldestUsablePython.Major},{OldestUsablePython.Minor}) <= sys.version_info[:2] < " +

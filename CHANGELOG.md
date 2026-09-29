@@ -5,6 +5,15 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
+## 0.9.0
+
+- **MarkItDown 0.1.8.** Around forty small fixes upstream: CSV files with a BOM, strikethrough
+  and underlined text in Word, charts in PowerPoint, Outlook messages, equations and more. On
+  the test documents the output is identical to 0.1.7. The first launch after updating
+  reinstalls the engine once, so it takes a little longer than usual.
+- **Python 3.14 works.** MarkItDown 0.1.7 could not be installed on it, so MdPipe used to skip
+  it and download its own Python. If 3.14 is what you have, that download is gone now.
+
 ## 0.8.0
 
 - **Fixed: any document whose path had an accent in it failed to convert.** Not just the file name,

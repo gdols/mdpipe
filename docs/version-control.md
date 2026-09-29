@@ -41,10 +41,9 @@ The manifest looks like this:
 ```json
 {
   "schemaVersion": 2,
-  "stableVersion": "0.1.7",
-  "minimumVersion": "0.1.5",
-  "compatibleVersions": ["0.1.5", "0.1.6", "0.1.7"],
-  "updatedAt": "2026-08-05",
+  "stableVersion": "0.1.8",
+  "compatibleVersions": ["0.1.5", "0.1.6", "0.1.7", "0.1.8"],
+  "updatedAt": "2026-09-29",
   "notes": "Validated on real PDF, DOCX and XLSX files",
   "app": {
     "latestVersion": "0.5.0",
@@ -60,7 +59,6 @@ The manifest looks like this:
 |---|---|
 | `stableVersion` | The version installed when running `mdpipe setup` |
 | `compatibleVersions` | The exact set of versions considered safe to run |
-| `minimumVersion` | Informational; lowest validated version |
 | `app` | What the newest MdPipe is, so an old copy can say so |
 
 #### The `app` block

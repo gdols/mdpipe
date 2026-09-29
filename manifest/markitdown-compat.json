@@ -1,18 +1,19 @@
 {
   "schemaVersion": 2,
-  "stableVersion": "0.1.7",
+  "stableVersion": "0.1.8",
   "compatibleVersions": [
     "0.1.5",
     "0.1.6",
-    "0.1.7"
+    "0.1.7",
+    "0.1.8"
   ],
-  "updatedAt": "2026-08-05",
-  "notes": "0.1.7 validated on real PDF, DOCX and XLSX files: output identical to 0.1.6, plus upstream fixes for PPTX charts, PPTX SVG images and Word equations.",
+  "updatedAt": "2026-09-29",
+  "notes": "0.1.8 validated on real PDF, DOCX and XLSX files: output identical to 0.1.7. Its dependencies install on Python 3.14, which 0.1.7 could not.",
   "app": {
-    "latestVersion": "0.8.0",
-    "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.8.0",
-    "downloadUrl": "https://github.com/gdols/MdPipe/releases/download/v0.8.0/MdPipe.exe",
+    "latestVersion": "0.9.0",
+    "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.9.0",
+    "downloadUrl": "https://github.com/gdols/MdPipe/releases/download/v0.9.0/MdPipe.exe",
     "criticalBelow": "0.6.1",
-    "notes": "Documents with an accent anywhere in their path convert now. They all used to fail."
+    "notes": "Updated to MarkItDown 0.1.8, and Python 3.14 works now."
   }
 }

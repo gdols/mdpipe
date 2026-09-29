@@ -130,7 +130,8 @@ def report(current: str, new: str, python_old: Path, python_new: Path) -> tuple[
         "## To accept it",
         "",
         "Add the version to `compatibleVersions` in `manifest/markitdown-compat.json` and move "
-        "`stableVersion` up. Every installed copy picks it up within a day.",
+        "`stableVersion` up. That only changes what the next build installs, so it reaches "
+        "people with the next MdPipe release.",
         "",
         "To reject it, say why here and close this. The refusal is then on the record, which is "
         "the part that was missing before.",
