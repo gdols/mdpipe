@@ -21,6 +21,10 @@ nothing to configure. Conversion runs through Microsoft's
 into a folder of its own and keeps to a version it was tested with. There is a
 CLI in here too, for anyone who wants one.
 
+<p align="center">
+  <img src="assets/demo.gif" alt="Dropping a PDF, a Word document and an Excel file onto MdPipe and converting them to Markdown" width="760">
+</p>
+
 ## Download
 
 <p align="center">
@@ -40,10 +44,6 @@ When a newer version comes out, MdPipe says so and offers to fetch it: it
 downloads the new one, checks it is the right file and restarts into it. It asks
 first, every time, and where it cannot write to its own folder, on a memory stick
 or under Program Files, it opens the download page instead.
-
-<p align="center">
-  <img src="assets/screenshots/app-main.png" alt="MdPipe desktop app" width="720">
-</p>
 
 There are other ways to run MarkItDown, and most of them start with installing
 Python. I wanted one I could hand to someone who has never opened a terminal and
