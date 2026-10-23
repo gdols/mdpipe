@@ -5,6 +5,27 @@ when a newer version exists comes from `app.notes` in
 [the manifest](manifest/markitdown-compat.json), so it is worth writing that line here first
 and copying it across.
 
+## 0.9.1
+
+- **Audio no longer leaves your computer.** MarkItDown transcribes audio by uploading it to
+  Google, over plain HTTP, and nothing said so. MdPipe now doesn't transcribe audio at all and
+  tells you why if you try.
+- **Images and scanned PDFs no longer come out as empty "converted" files.** MarkItDown has no
+  text recognition, so they gave back nothing and MdPipe wrote that out with a green tick. Now
+  it says no text was found, writes nothing, and leaves images and audio out of folder scans.
+- **Nothing is overwritten without asking.** If a `.md` with the same name is already there,
+  MdPipe asks whether to replace it or keep both. It used to replace it silently, and it could
+  be your own notes.
+- **Same name, different file:** `report.pdf` and `report.docx` now become `report.pdf.md` and
+  `report.docx.md` instead of `report.md` and `report-2.md`.
+- **MarkItDown 0.1.9**, which brings an updated certificate list after a security advisory.
+- **Python 3.14.9** for the copy MdPipe downloads when you have no Python of your own. The old
+  one, 3.12.7, was two years behind on security fixes. It is replaced on the first launch, so
+  that one takes a couple of minutes.
+- The drop zone works with the keyboard and screen readers, Convert is only offered when there
+  is something to convert, a small log file is kept in `%APPDATA%\mdpipe` for when something
+  goes wrong, and "1 file(s)" reads like a sentence now.
+
 ## 0.9.0
 
 - **MarkItDown 0.1.8.** Around forty small fixes upstream: CSV files with a BOM, strikethrough

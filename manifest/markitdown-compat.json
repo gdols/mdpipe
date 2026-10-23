@@ -11,10 +11,10 @@
   "updatedAt": "2026-10-23",
   "notes": "0.1.9 validated on real PDF, DOCX and XLSX files: output identical to 0.1.8. It requires certifi 2026.10.19 or later, which drops the compromised emSign roots.",
   "app": {
-    "latestVersion": "0.9.0",
-    "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.9.0",
-    "downloadUrl": "https://github.com/gdols/MdPipe/releases/download/v0.9.0/MdPipe.exe",
+    "latestVersion": "0.9.1",
+    "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.9.1",
+    "downloadUrl": "https://github.com/gdols/MdPipe/releases/download/v0.9.1/MdPipe.exe",
     "criticalBelow": "0.6.1",
-    "notes": "Updated to MarkItDown 0.1.8, and Python 3.14 works now."
+    "notes": "Audio no longer leaves your computer, and existing .md files are never replaced without asking."
   }
 }
