@@ -304,6 +304,7 @@ public sealed class WindowBindingTests : IDisposable
     {
         public void ShowMessage(string message, string title, DialogKind kind) { }
         public bool Confirm(string message, string title) => false;
+        public OverwriteChoice AskOverwrite(int count) => OverwriteChoice.Replace;
         public void OpenLink(string url) { }
         public void RestartWith(string executablePath) { }
         public string? PickFolder(string title) => null;

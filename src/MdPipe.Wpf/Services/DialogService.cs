@@ -16,6 +16,16 @@ public sealed class DialogService : IDialogService
             _ => MessageBoxImage.Information
         });
 
+    public OverwriteChoice AskOverwrite(int count) =>
+        MessageBox.Show(
+            count == 1 ? Strings.OverwriteBodyOne : string.Format(Strings.OverwriteBody, count),
+            Strings.OverwriteTitle, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) switch
+        {
+            MessageBoxResult.Yes => OverwriteChoice.Replace,
+            MessageBoxResult.No => OverwriteChoice.KeepBoth,
+            _ => OverwriteChoice.Cancel
+        };
+
     public bool Confirm(string message, string title) =>
         MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 

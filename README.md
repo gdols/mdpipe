@@ -67,7 +67,7 @@ than repeating someone else's documentation. The same list is a click away in th
   <img src="assets/screenshots/app-formats.png" alt="The formats window listing what the installed engine can read" width="480">
 </p>
 
-Three details worth knowing:
+A few details worth knowing:
 
 - **Naming a file directly converts it whatever its extension.** The list above only decides
   what gets picked up when you drop a whole folder. If you have files with a wrong or missing
@@ -77,6 +77,9 @@ Three details worth knowing:
   a scanned PDF comes out empty, and MdPipe says so instead of writing an empty file. Audio it
   would transcribe by uploading it to Google, so MdPipe doesn't transcribe it at all: your files
   stay on your computer.
+- **Nothing is overwritten without asking.** If a `.md` with the same name is already there,
+  MdPipe asks whether to replace it or keep both. Two documents called `report` in the same
+  batch become `report.pdf.md` and `report.docx.md`, so you can tell which is which.
 - **Markdown files are skipped when scanning a folder**, on purpose: the output would land on
   top of the input and rewrite your own notes.
 - Word and PowerPoint files from the 1990s (`.doc`, `.ppt`) have no converter anywhere in this

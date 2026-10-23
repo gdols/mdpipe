@@ -246,6 +246,7 @@ public sealed class UpdateNoticeViewModelTests : IDisposable
             return ConfirmAnswer;
         }
 
+        public OverwriteChoice AskOverwrite(int count) => OverwriteChoice.Replace;
         public void OpenLink(string url) => Links.Add(url);
         public void RestartWith(string executablePath) => RestartedWith = executablePath;
         public void ShowMessage(string message, string title, DialogKind kind) { }

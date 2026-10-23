@@ -161,6 +161,15 @@ public static class Strings
     /// <summary>The update was installed, but the new version wouldn't start from here. Close MdPipe and open it again.</summary>
     public static string RestartFailedBody => Get("RestartFailedBody");
 
+    /// <summary>Some files are already there</summary>
+    public static string OverwriteTitle => Get("OverwriteTitle");
+
+    /// <summary>One of these documents already has a Markdown file with the same name next to it.</summary>
+    public static string OverwriteBodyOne => Get("OverwriteBodyOne");
+
+    /// <summary>{0} of these documents already have a Markdown file with the same name next to them.</summary>
+    public static string OverwriteBody => Get("OverwriteBody");
+
     /// <summary>MdPipe {0} is out and might fix this. You have {1}.</summary>
     public static string UpdateMightFix => Get("UpdateMightFix");
 

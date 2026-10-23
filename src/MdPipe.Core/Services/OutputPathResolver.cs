@@ -3,39 +3,65 @@ using MdPipe.Core.Models;
 namespace MdPipe.Core.Services;
 
 /// <summary>
-/// Works out where each converted document goes. Create one per run: it remembers what it handed out.
+/// Works out where each converted document of a batch goes, so one batch never writes two documents
+/// to the same file.
 /// </summary>
 /// <remarks>
-/// Converting a tree into one output folder flattens it, so 2025\report.pdf and 2026\report.pdf both
-/// want to be report.md. The second gets a suffix and the caller is told. Only clashes within the
-/// same run are avoided: overwriting an earlier run is what re-converting a folder means.
+/// Two sources that would both become report.md are told apart by their extension when they have
+/// different ones (report.pdf.md, report.docx.md), because report-2.md says nothing about which is
+/// which. Same name and same extension, as when a tree is flattened into one output folder, still
+/// gets a number. Files already on disk are only avoided when the caller asks: overwriting an
+/// earlier run is what re-converting a folder normally means.
 /// </remarks>
-public sealed class OutputPathResolver
+public static class OutputPathResolver
 {
-    private readonly HashSet<string> _used = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <param name="sourcePath">The document being converted.</param>
-    /// <param name="outputFolder">Where to write, or null to sit next to the original.</param>
-    public OutputPath For(string sourcePath, string? outputFolder)
+    /// <param name="sources">The documents being converted, in order.</param>
+    /// <param name="outputFolder">Where to write, or null to sit next to each original.</param>
+    /// <param name="keepExisting">Leave files that already exist alone and pick another name.</param>
+    public static IReadOnlyList<OutputPath> Plan(
+        IReadOnlyList<string> sources, string? outputFolder, bool keepExisting = false)
     {
-        var source = Path.GetFullPath(sourcePath);
-        var folder = string.IsNullOrEmpty(outputFolder)
-            ? Path.GetDirectoryName(source)!
-            : outputFolder;
-        var name = Path.GetFileNameWithoutExtension(source);
+        var full = sources.Select(Path.GetFullPath).ToList();
 
-        var candidate = Path.GetFullPath(Path.Combine(folder, name + ".md"));
-        var attempt = 1;
+        string FolderOf(string source) =>
+            string.IsNullOrEmpty(outputFolder) ? Path.GetDirectoryName(source)! : outputFolder;
 
-        // Also guards the destination being the source itself, which happens when someone names a
-        // Markdown file explicitly. Converting a file onto itself would destroy it.
-        while (_used.Contains(candidate) || candidate.Equals(source, StringComparison.OrdinalIgnoreCase))
+        string Plain(string source) =>
+            Path.GetFullPath(Path.Combine(FolderOf(source), Path.GetFileNameWithoutExtension(source) + ".md"));
+
+        var byExtension = full
+            .GroupBy(Plain, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Select(Path.GetExtension).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
+            .SelectMany(g => g)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var plan = new List<OutputPath>(full.Count);
+
+        foreach (var source in full)
         {
-            attempt++;
-            candidate = Path.GetFullPath(Path.Combine(folder, $"{name}-{attempt}.md"));
+            var folder = FolderOf(source);
+            var stem = byExtension.Contains(source)
+                ? Path.GetFileName(source)
+                : Path.GetFileNameWithoutExtension(source);
+
+            var candidate = Path.GetFullPath(Path.Combine(folder, stem + ".md"));
+            var attempt = 1;
+
+            // Also guards the destination being the source itself, which happens when someone names a
+            // Markdown file explicitly. Converting a file onto itself would destroy it.
+            while (used.Contains(candidate) ||
+                   candidate.Equals(source, StringComparison.OrdinalIgnoreCase) ||
+                   (keepExisting && File.Exists(candidate)))
+            {
+                attempt++;
+                candidate = Path.GetFullPath(Path.Combine(folder, $"{stem}-{attempt}.md"));
+            }
+
+            used.Add(candidate);
+            plan.Add(new OutputPath(candidate, !candidate.Equals(Plain(source), StringComparison.OrdinalIgnoreCase)));
         }
 
-        _used.Add(candidate);
-        return new OutputPath(candidate, attempt > 1);
+        return plan;
     }
 }
