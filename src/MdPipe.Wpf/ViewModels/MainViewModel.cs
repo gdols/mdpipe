@@ -181,7 +181,8 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         ? Strings.NextToEachOriginal
         : OutputFolder;
 
-    public bool CanConvert => IsReady && !IsBusy && Files.Count > 0;
+    /// <summary>Only when something is left to convert, or pressing it again reports "0 converted".</summary>
+    public bool CanConvert => IsReady && !IsBusy && Files.Any(f => f.Status is FileStatus.Pending or FileStatus.Error);
 
     public bool ShowReinstall => !IsReady && !IsBusy;
 
@@ -331,7 +332,7 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         try
         {
             var progress = new Progress<int>(found =>
-                StatusMessage = found == 0 ? Strings.Scanning : string.Format(Strings.ScanningFound, found));
+                StatusMessage = found == 0 ? Strings.Scanning : Count(found, Strings.ScanningFoundOne, Strings.ScanningFound));
 
             resolution = await Task.Run(
                 () => _inputResolver.Resolve(paths, recursive: true, IncludeEverything, progress, token), token);
@@ -374,7 +375,7 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
     private static string Summarize(InputResolution resolution, int added, string previous)
     {
         if (resolution.Cancelled)
-            return string.Format(Strings.ScanCancelled, added);
+            return Count(added, Strings.ScanCancelledOne, Strings.ScanCancelled);
 
         // A partial list looks exactly like a complete one, so folders we couldn't open must be said.
         if (resolution.Unreadable.Count > 0)
@@ -459,11 +460,11 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
                 if (pending[i].Status == FileStatus.Converting)
                     pending[i].Status = FileStatus.Pending;
 
-            var renamedNote = renamed > 0 ? string.Format(Strings.RenamedNote, renamed) : "";
+            var renamedNote = renamed > 0 ? Count(renamed, Strings.RenamedNoteOne, Strings.RenamedNote) : "";
             StatusMessage = (cancelled
-                ? string.Format(Strings.CancelledCount, converted)
+                ? Count(converted, Strings.CancelledCountOne, Strings.CancelledCount)
                 : converted == pending.Count
-                    ? string.Format(Strings.DoneCount, converted)
+                    ? Count(converted, Strings.DoneCountOne, Strings.DoneCount)
                     : string.Format(Strings.FinishedWithWarnings, converted, pending.Count)) + renamedNote;
         }
         finally
@@ -497,6 +498,9 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         if (!string.IsNullOrEmpty(folder))
             _dialogs.OpenFolder(folder);
     }
+
+    /// <summary>Picks the singular or the plural sentence. Both languages use the singular for one only.</summary>
+    private static string Count(int n, string one, string many) => n == 1 ? one : string.Format(many, n);
 
     private static void CommandManagerRefresh() =>
         Application.Current?.Dispatcher.Invoke(System.Windows.Input.CommandManager.InvalidateRequerySuggested);

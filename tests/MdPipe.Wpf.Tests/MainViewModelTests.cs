@@ -91,6 +91,49 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task OnceEverythingIsConverted_ConvertIsNoLongerOffered()
+    {
+        // It used to stay enabled, and pressing it again reported "Done · 0 file(s) converted".
+        var vm = BuildSut();
+        await vm.InitializeAsync();
+        await vm.AddFilesAsync([CreateFile("a.pdf")]);
+        vm.ConvertCommand.CanExecute(null).Should().BeTrue();
+
+        await ConvertAndWait(vm);
+
+        vm.ConvertCommand.CanExecute(null).Should().BeFalse("there is nothing left to convert");
+
+        await vm.AddFilesAsync([CreateFile("b.pdf")]);
+        vm.ConvertCommand.CanExecute(null).Should().BeTrue("a new file is waiting");
+    }
+
+    [Fact]
+    public async Task AFailedFileCanBeTriedAgain()
+    {
+        _converter.FailFor.Add("bad.xlsx");
+        var vm = BuildSut();
+        await vm.InitializeAsync();
+        await vm.AddFilesAsync([CreateFile("bad.xlsx")]);
+
+        await ConvertAndWait(vm);
+
+        vm.ConvertCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(1, "Done · 1 file converted")]
+    [InlineData(2, "Done · 2 files converted")]
+    public async Task TheSummaryUsesSingularAndPlural(int count, string expected)
+    {
+        var vm = BuildSut();
+        await vm.AddFilesAsync(Enumerable.Range(0, count).Select(i => CreateFile($"f{i}.pdf")));
+
+        await ConvertAndWait(vm);
+
+        vm.StatusMessage.Should().Be(expected);
+    }
+
+    [Fact]
     public async Task AFileThatFails_DoesNotStopTheRest()
     {
         _converter.FailFor.Add("bad.xlsx");

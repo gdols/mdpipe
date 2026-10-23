@@ -89,11 +89,17 @@ public static class Strings
     /// <summary>Converting files…</summary>
     public static string ConvertingFiles => Get("ConvertingFiles");
 
-    /// <summary>Done · {0} file(s) converted</summary>
+    /// <summary>Done · {0} files converted</summary>
     public static string DoneCount => Get("DoneCount");
 
-    /// <summary>Cancelled · {0} file(s) converted so far</summary>
+    /// <summary>Done · 1 file converted</summary>
+    public static string DoneCountOne => Get("DoneCountOne");
+
+    /// <summary>Cancelled · {0} files converted so far</summary>
     public static string CancelledCount => Get("CancelledCount");
+
+    /// <summary>Cancelled · 1 file converted so far</summary>
+    public static string CancelledCountOne => Get("CancelledCountOne");
 
     /// <summary>Finished with warnings · {0}/{1} converted</summary>
     public static string FinishedWithWarnings => Get("FinishedWithWarnings");
@@ -101,14 +107,23 @@ public static class Strings
     /// <summary>· {0} renamed to avoid overwriting</summary>
     public static string RenamedNote => Get("RenamedNote");
 
+    /// <summary>· 1 renamed to avoid overwriting</summary>
+    public static string RenamedNoteOne => Get("RenamedNoteOne");
+
     /// <summary>Looking through folders...</summary>
     public static string Scanning => Get("Scanning");
 
     /// <summary>Looking through folders... {0} files found</summary>
     public static string ScanningFound => Get("ScanningFound");
 
+    /// <summary>Looking through folders... 1 file found</summary>
+    public static string ScanningFoundOne => Get("ScanningFoundOne");
+
     /// <summary>Search stopped. {0} files were added.</summary>
     public static string ScanCancelled => Get("ScanCancelled");
+
+    /// <summary>Search stopped. 1 file was added.</summary>
+    public static string ScanCancelledOne => Get("ScanCancelledOne");
 
     /// <summary>MdPipe {0} is available. You are on {1}.</summary>
     public static string UpdateAvailable => Get("UpdateAvailable");
