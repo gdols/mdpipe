@@ -12,7 +12,13 @@ namespace MdPipe.Infrastructure.Python;
 
 public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConversionWorkerSource
 {
-    private const string EmbeddedPythonVersion = "3.12.7";
+    /// <summary>
+    /// The Python MdPipe downloads when the machine has none it can use. It has to be a release that
+    /// python.org still publishes an embeddable package for, which rules out lines that are
+    /// security-only (3.12 stopped at 3.12.10). An embedded Python left over from an older build is
+    /// rebuilt on this version, so its security fixes arrive with MdPipe updates.
+    /// </summary>
+    internal const string EmbeddedPythonVersion = "3.14.9";
 
     /// <summary>
     /// The Python versions MarkItDown can actually be installed on: 3.10 up to but not including
@@ -554,14 +560,31 @@ public sealed class PythonEnvironmentManager : IPythonEnvironmentManager, IConve
         {
             var output = await RunProcessAsync(
                 pythonExe,
-                $"-c \"import os,sys,sysconfig; z=os.path.join(os.path.dirname(sys.executable),f'python{{sys.version_info.major}}{{sys.version_info.minor}}.zip'); ok = {VersionIsInRange} and (os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py')) or os.path.isfile(z)); print('OK' if ok else '')\"",
+                $"-c \"import os,sys,sysconfig,platform; z=os.path.join(os.path.dirname(sys.executable),f'python{{sys.version_info.major}}{{sys.version_info.minor}}.zip'); ok = {VersionIsInRange} and (os.path.isfile(os.path.join(sysconfig.get_paths()['stdlib'],'os.py')) or os.path.isfile(z)); print(('OK ' if ok else 'NO ') + platform.python_version())\"",
                 cancellationToken, captureOutput: true);
-            return output.Trim() == "OK";
+
+            var embedded = string.Equals(Path.GetFullPath(pythonExe), Path.GetFullPath(EmbedPython), StringComparison.OrdinalIgnoreCase);
+            var healthy = ReadHealth(output, embedded);
+            if (!healthy && embedded)
+                logger.LogInformation("The embedded Python reports '{Output}', this build brings {Version}. It will be rebuilt.",
+                    output.Trim(), EmbeddedPythonVersion);
+            return healthy;
         }
         catch
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Reads the health check's answer. The embedded Python also has to be the version this build
+    /// brings: it is MdPipe's own, and an old one would keep its old security holes forever.
+    /// </summary>
+    internal static bool ReadHealth(string output, bool isEmbedded)
+    {
+        var parts = output.Trim().Split(' ', 2);
+        if (parts[0] != "OK") return false;
+        return !isEmbedded || (parts.Length == 2 && parts[1] == EmbeddedPythonVersion);
     }
 
     internal void TryDeleteDir(string dir)

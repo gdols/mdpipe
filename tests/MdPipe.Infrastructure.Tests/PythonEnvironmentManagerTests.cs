@@ -222,6 +222,20 @@ public sealed class PythonEnvironmentManagerTests : IDisposable
             .Should().Equal("-3.14", "-3.13", "-3.12", "-3.11", "-3.10");
     }
 
+    [Theory]
+    [InlineData("OK 3.13.2", false, true)]     // a system Python only has to be usable
+    [InlineData("NO 3.15.1", false, false)]
+    [InlineData("OK " + PythonEnvironmentManager.EmbeddedPythonVersion, true, true)]
+    [InlineData("OK 3.12.7", true, false)]     // our own, but from an older build: rebuild it
+    [InlineData("OK", true, false)]
+    [InlineData("", false, false)]
+    public void AnEmbeddedPythonFromAnOlderBuildIsRebuilt(string output, bool embedded, bool healthy)
+    {
+        // Without this an embedded Python, once downloaded, stayed on its version for good, and
+        // bumping EmbeddedPythonVersion only ever reached new installs.
+        PythonEnvironmentManager.ReadHealth(output, embedded).Should().Be(healthy);
+    }
+
     /// <summary>Nothing here reaches the network; asking for a client would be a bug in the test.</summary>
     private sealed class NoHttp : IHttpClientFactory
     {
