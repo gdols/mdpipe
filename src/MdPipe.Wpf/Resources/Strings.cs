@@ -170,6 +170,9 @@ public static class Strings
     /// <summary>{0} of these documents already have a Markdown file with the same name next to them.</summary>
     public static string OverwriteBody => Get("OverwriteBody");
 
+    /// <summary>The details are saved in {0}</summary>
+    public static string LogHint => Get("LogHint");
+
     /// <summary>MdPipe {0} is out and might fix this. You have {1}.</summary>
     public static string UpdateMightFix => Get("UpdateMightFix");
 
