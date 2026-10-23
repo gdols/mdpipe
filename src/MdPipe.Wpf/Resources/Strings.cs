@@ -38,7 +38,7 @@ public static class Strings
     /// <summary>Drag your files here</summary>
     public static string DropTitle => Get("DropTitle");
 
-    /// <summary>or click to choose them · PDF, Word, Excel, PowerPoint, HTML, images…</summary>
+    /// <summary>or click to choose them · PDF, Word, Excel, PowerPoint, HTML, Outlook…</summary>
     public static string DropSubtitle => Get("DropSubtitle");
 
     /// <summary>No files added yet.</summary>

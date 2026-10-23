@@ -126,6 +126,13 @@ public sealed class MarkItDownConverter(
 
         var markdown = response.Markdown ?? string.Empty;
 
+        // Images and scanned PDFs come back as an empty string, and writing that out as a
+        // "converted" file is the worst of both: it looks like it worked and holds nothing.
+        if (string.IsNullOrWhiteSpace(markdown))
+            return (ConversionResult.Fail(
+                "No text was found in this file. Images and scanned PDFs need text recognition (OCR), " +
+                "which MarkItDown doesn't do."), false);
+
         if (request.OutputPath is null)
             return (ConversionResult.Ok(markdown), false);
 

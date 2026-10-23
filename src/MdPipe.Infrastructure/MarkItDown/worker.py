@@ -20,6 +20,34 @@ Only a hard crash ends the loop, and MdPipe restarts the worker when it sees the
 import json
 import sys
 
+# MarkItDown transcribes audio with speech_recognition's recognize_google, which uploads it to
+# Google. Everything else MdPipe does stays on the computer, so transcription is switched off.
+NO_TRANSCRIPTION = (
+    "MdPipe doesn't transcribe audio: MarkItDown would upload it to Google to do it, "
+    "and MdPipe keeps your files on this computer."
+)
+
+# Converters whose output MdPipe can't stand behind, so folder scans and the formats list leave
+# their extensions out. Audio, for the reason above. Images, because without OCR, exiftool or an
+# LLM, MarkItDown gets nothing out of them. A file named explicitly is still tried.
+LEFT_OUT = {"AudioConverter", "ImageConverter"}
+
+
+class AudioNotTranscribed(Exception):
+    pass
+
+
+def switch_off_transcription():
+    try:
+        from markitdown.converters import _audio_converter
+    except ImportError:
+        return
+
+    def refuse(*args, **kwargs):
+        raise AudioNotTranscribed(NO_TRANSCRIPTION)
+
+    _audio_converter.transcribe_audio = refuse
+
 
 def emit(payload):
     """Write one result object and push it out immediately, so MdPipe can show progress."""
@@ -69,6 +97,8 @@ def describe_formats():
     converters, every = [], set()
     for registration in registrations:
         converter = registration.converter
+        if type(converter).__name__ in LEFT_OUT:
+            continue
         module = sys.modules.get(type(converter).__module__)
         found = set()
 
@@ -109,6 +139,7 @@ def main():
     if "--formats" in sys.argv:
         return describe_formats()
 
+    switch_off_transcription()
     converter = MarkItDown()
 
     for line in sys.stdin:
@@ -120,7 +151,9 @@ def main():
             result = converter.convert(path)
             emit({"path": path, "ok": True, "markdown": result.text_content})
         except Exception as exc:  # noqa: BLE001 - one bad document must not end the batch
-            emit({"path": path, "ok": False, "error": one_line(exc)})
+            # MarkItDown wraps what a converter raised in its own exception, so look at the text.
+            error = NO_TRANSCRIPTION if "AudioNotTranscribed" in str(exc) else one_line(exc)
+            emit({"path": path, "ok": False, "error": error})
 
     return 0
 

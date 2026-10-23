@@ -13,7 +13,7 @@
 
 If you have documents you want to put into ChatGPT, Obsidian, or anything else
 that reads Markdown, MdPipe converts them for you. PDF, Word, Excel, PowerPoint,
-HTML, images and more, a whole folder at a time.
+HTML, Outlook mail and more, a whole folder at a time.
 
 **It is one file and you double-click it.** No installer, no Python, no .NET,
 nothing to configure. Conversion runs through Microsoft's
@@ -57,8 +57,6 @@ is not about to start.
 | **Spreadsheets** | `.xlsx` `.xls` `.csv` |
 | **Web and data** | `.html` `.htm` `.xml` `.rss` `.atom` `.json` `.jsonl` `.ipynb` |
 | **Text** | `.txt` `.text` `.markdown` `.md` |
-| **Images** | `.png` `.jpg` `.jpeg` |
-| **Audio** | `.mp3` `.wav` `.m4a` `.mp4` |
 | **Other** | `.msg` (Outlook mail) `.zip` (converts what is inside) |
 
 That list is not written by hand. MdPipe asks the MarkItDown installed on your machine what
@@ -75,6 +73,10 @@ Three details worth knowing:
   what gets picked up when you drop a whole folder. If you have files with a wrong or missing
   extension, tick *Try every file* (or pass `--all-files`) and the engine will decide by what
   is inside them.
+- **Images and audio are left out.** MarkItDown has no text recognition (OCR), so an image or
+  a scanned PDF comes out empty, and MdPipe says so instead of writing an empty file. Audio it
+  would transcribe by uploading it to Google, so MdPipe doesn't transcribe it at all: your files
+  stay on your computer.
 - **Markdown files are skipped when scanning a folder**, on purpose: the output would land on
   top of the input and rewrite your own notes.
 - Word and PowerPoint files from the 1990s (`.doc`, `.ppt`) have no converter anywhere in this

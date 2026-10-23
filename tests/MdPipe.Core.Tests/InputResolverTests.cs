@@ -183,7 +183,6 @@ public sealed class InputResolverTests : IDisposable
     [InlineData("mail.msg")]
     [InlineData("sheet.xls")]
     [InlineData("notebook.ipynb")]
-    [InlineData("audio.mp3")]
     public void Resolve_WithAFolder_PicksUpEverythingMarkItDownConverts(string fileName)
     {
         CreateFile("docs/" + fileName);
