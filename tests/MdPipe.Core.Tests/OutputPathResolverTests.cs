@@ -5,81 +5,100 @@ namespace MdPipe.Core.Tests;
 
 public class OutputPathResolverTests
 {
-    private readonly OutputPathResolver _sut = new();
-
     private static string Out(string relative) => Path.GetFullPath(Path.Combine(@"C:\out", relative));
 
-    [Fact]
-    public void For_WithDistinctNames_LeavesThemAlone()
-    {
-        var first = _sut.For(@"C:\docs\report.pdf", @"C:\out");
-        var second = _sut.For(@"C:\docs\invoice.docx", @"C:\out");
+    private static string[] Names(params string[] sources) =>
+        OutputPathResolver.Plan(sources, @"C:\out").Select(p => Path.GetFileName(p.FullPath)).ToArray();
 
-        first.FullPath.Should().Be(Out("report.md"));
-        second.FullPath.Should().Be(Out("invoice.md"));
-        first.Renamed.Should().BeFalse();
-        second.Renamed.Should().BeFalse();
+    [Fact]
+    public void DistinctNames_AreLeftAlone()
+    {
+        var plan = OutputPathResolver.Plan([@"C:\docs\report.pdf", @"C:\docs\invoice.docx"], @"C:\out");
+
+        plan.Select(p => p.FullPath).Should().Equal(Out("report.md"), Out("invoice.md"));
+        plan.Should().OnlyContain(p => !p.Renamed);
     }
 
     [Fact]
-    public void For_WhenTwoSourcesFlattenToTheSameName_SuffixesTheSecond()
+    public void SameNameDifferentExtension_KeepsTheExtension()
     {
-        var first = _sut.For(@"C:\docs\2025\report.pdf", @"C:\out");
-        var second = _sut.For(@"C:\docs\2026\report.pdf", @"C:\out");
+        // report.md and report-2.md said nothing about which one came from the PDF.
+        var plan = OutputPathResolver.Plan([@"C:\docs\report.pdf", @"C:\docs\report.docx"], null);
 
-        first.FullPath.Should().Be(Out("report.md"));
-        second.FullPath.Should().Be(Out("report-2.md"));
-        first.Renamed.Should().BeFalse();
-        second.Renamed.Should().BeTrue();
+        plan.Select(p => p.FullPath).Should().Equal(
+            Path.GetFullPath(@"C:\docs\report.pdf.md"), Path.GetFullPath(@"C:\docs\report.docx.md"));
+        plan.Should().OnlyContain(p => p.Renamed);
     }
 
     [Fact]
-    public void For_WithSeveralClashes_KeepsCounting()
+    public void SameNameSameExtension_FlattenedIntoOneFolder_GetsANumber()
     {
-        _sut.For(@"C:\a\report.pdf", @"C:\out");
-        _sut.For(@"C:\b\report.docx", @"C:\out");
-        var third = _sut.For(@"C:\c\report.pptx", @"C:\out");
-
-        third.FullPath.Should().Be(Out("report-3.md"));
-        third.Renamed.Should().BeTrue();
+        // The extension can't tell these apart, so a number has to.
+        Names(@"C:\docs\2025\report.pdf", @"C:\docs\2026\report.pdf").Should().Equal("report.md", "report-2.md");
     }
 
     [Fact]
-    public void For_WithNoOutputFolder_SitsNextToTheOriginal()
+    public void ANameClashThatIsAlsoAnExtensionClash_StillEndsUpUnique()
     {
-        var result = _sut.For(@"C:\docs\report.pdf", null);
-
-        result.FullPath.Should().Be(Path.GetFullPath(@"C:\docs\report.md"));
-        result.Renamed.Should().BeFalse();
+        Names(@"C:\a\report.pdf", @"C:\b\report.pdf", @"C:\c\report.docx")
+            .Should().Equal("report.pdf.md", "report.pdf-2.md", "report.docx.md");
     }
 
     [Fact]
-    public void For_WithSameNamesInTheirOwnFolders_DoesNotTreatThemAsAClash()
+    public void WithNoOutputFolder_SitsNextToTheOriginal()
     {
-        var first = _sut.For(@"C:\docs\2025\report.pdf", null);
-        var second = _sut.For(@"C:\docs\2026\report.pdf", null);
+        var plan = OutputPathResolver.Plan([@"C:\docs\report.pdf"], null);
 
-        first.FullPath.Should().Be(Path.GetFullPath(@"C:\docs\2025\report.md"));
-        second.FullPath.Should().Be(Path.GetFullPath(@"C:\docs\2026\report.md"));
-        second.Renamed.Should().BeFalse();
+        plan[0].FullPath.Should().Be(Path.GetFullPath(@"C:\docs\report.md"));
+        plan[0].Renamed.Should().BeFalse();
     }
 
     [Fact]
-    public void For_WhenTheOutputWouldBeTheSourceItself_MovesOutOfTheWay()
+    public void SameNamesInTheirOwnFolders_AreNotAClash()
+    {
+        var plan = OutputPathResolver.Plan([@"C:\docs\2025\report.pdf", @"C:\docs\2026\report.pdf"], null);
+
+        plan.Select(p => p.FullPath).Should().Equal(
+            Path.GetFullPath(@"C:\docs\2025\report.md"), Path.GetFullPath(@"C:\docs\2026\report.md"));
+        plan.Should().OnlyContain(p => !p.Renamed);
+    }
+
+    [Fact]
+    public void WhenTheOutputWouldBeTheSourceItself_MovesOutOfTheWay()
     {
         // Converting notes.md next to itself would destroy the original.
-        var result = _sut.For(@"C:\docs\notes.md", null);
+        var plan = OutputPathResolver.Plan([@"C:\docs\notes.md"], null);
 
-        result.FullPath.Should().Be(Path.GetFullPath(@"C:\docs\notes-2.md"));
-        result.Renamed.Should().BeTrue();
+        plan[0].FullPath.Should().Be(Path.GetFullPath(@"C:\docs\notes-2.md"));
+        plan[0].Renamed.Should().BeTrue();
     }
 
     [Fact]
-    public void For_IsCaseInsensitiveAboutClashes()
+    public void ClashesAreCaseInsensitive()
     {
-        _sut.For(@"C:\a\Report.pdf", @"C:\out");
-        var second = _sut.For(@"C:\b\report.pdf", @"C:\out");
+        Names(@"C:\a\Report.pdf", @"C:\b\report.pdf").Should().Equal("Report.md", "report-2.md");
+    }
 
-        second.Renamed.Should().BeTrue();
+    [Fact]
+    public void FilesAlreadyOnDisk_AreOverwrittenUnlessAskedToKeepThem()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mdpipe-outpath", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "notes.md"), "my own notes");
+            var source = Path.Combine(dir, "notes.docx");
+
+            OutputPathResolver.Plan([source], null)[0].FullPath
+                .Should().Be(Path.Combine(dir, "notes.md"), "re-converting replaces by default");
+
+            var kept = OutputPathResolver.Plan([source], null, keepExisting: true)[0];
+            kept.FullPath.Should().Be(Path.Combine(dir, "notes-2.md"));
+            kept.Renamed.Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
     }
 }

@@ -121,6 +121,51 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [Theory]
+    [InlineData(OverwriteChoice.Replace, "notes.md", "converted")]
+    [InlineData(OverwriteChoice.KeepBoth, "notes-2.md", "my own notes")]
+    public async Task AMarkdownFileAlreadyThere_IsOnlyReplacedIfTheUserSaysSo(
+        OverwriteChoice choice, string writtenTo, string leftInNotesMd)
+    {
+        // It used to be replaced without a word, and it could just as well be something written by hand.
+        File.WriteAllText(Path.Combine(_dir, "notes.md"), "my own notes");
+        _dialogs.Overwrite = choice;
+        _converter.WriteFiles = true;
+        var vm = BuildSut();
+        await vm.AddFilesAsync([CreateFile("notes.docx")]);
+
+        await ConvertAndWait(vm);
+
+        _dialogs.OverwriteAsked.Should().Be(1);
+        vm.Files.Single().OutputPath.Should().Be(Path.Combine(_dir, writtenTo));
+        File.ReadAllText(Path.Combine(_dir, "notes.md")).Should().Contain(leftInNotesMd);
+    }
+
+    [Fact]
+    public async Task CancellingTheOverwriteQuestion_ConvertsNothing()
+    {
+        File.WriteAllText(Path.Combine(_dir, "notes.md"), "my own notes");
+        _dialogs.Overwrite = OverwriteChoice.Cancel;
+        var vm = BuildSut();
+        await vm.AddFilesAsync([CreateFile("notes.docx")]);
+
+        await ConvertAndWait(vm);
+
+        vm.Files.Single().Status.Should().Be(FileStatus.Pending);
+        File.ReadAllText(Path.Combine(_dir, "notes.md")).Should().Be("my own notes");
+    }
+
+    [Fact]
+    public async Task NothingAlreadyThere_NothingIsAsked()
+    {
+        var vm = BuildSut();
+        await vm.AddFilesAsync([CreateFile("fresh.pdf")]);
+
+        await ConvertAndWait(vm);
+
+        _dialogs.OverwriteAsked.Should().Be(0);
+    }
+
+    [Theory]
     [InlineData(1, "Done · 1 file converted")]
     [InlineData(2, "Done · 2 files converted")]
     public async Task TheSummaryUsesSingularAndPlural(int count, string expected)
@@ -342,6 +387,9 @@ public sealed class MainViewModelTests : IDisposable
         public string? PauseBefore { get; set; }
         public bool Paused { get; private set; }
 
+        /// <summary>Write the output like the real converter does, for tests about what is on disk.</summary>
+        public bool WriteFiles { get; set; }
+
         private readonly SemaphoreSlim _gate = new(0);
         public void Release() => _gate.Release();
 
@@ -361,9 +409,14 @@ public sealed class MainViewModelTests : IDisposable
                     cancellationToken.ThrowIfCancellationRequested();
                 }
 
-                yield return FailFor.Contains(name)
-                    ? ConversionResult.Fail("something went wrong with " + name)
-                    : ConversionResult.Ok("# converted", request.OutputPath);
+                if (FailFor.Contains(name))
+                {
+                    yield return ConversionResult.Fail("something went wrong with " + name);
+                    continue;
+                }
+
+                if (WriteFiles && request.OutputPath is not null) File.WriteAllText(request.OutputPath, "converted");
+                yield return ConversionResult.Ok("# converted", request.OutputPath);
             }
         }
     }
@@ -380,6 +433,10 @@ public sealed class MainViewModelTests : IDisposable
 
         // Only the update notice asks these, and it is tested where it lives now.
         public bool Confirm(string message, string title) => false;
+
+        public OverwriteChoice Overwrite { get; set; } = OverwriteChoice.Replace;
+        public int OverwriteAsked { get; private set; }
+        public OverwriteChoice AskOverwrite(int count) { OverwriteAsked = count; return Overwrite; }
         public void OpenLink(string url) { }
         public void RestartWith(string executablePath) { }
     }

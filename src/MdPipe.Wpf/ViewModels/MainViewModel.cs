@@ -388,6 +388,27 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
 
     private async Task ConvertAllAsync()
     {
+        var pending = Files.Where(f => f.Status is FileStatus.Pending or FileStatus.Error).ToList();
+        if (pending.Count == 0) return;
+
+        // Destinations first: the batch goes to the worker in one go, which is what lets one Python
+        // process handle all of them instead of paying the two-second import per file. It is also the
+        // moment to notice a .md that is already there, which may well be someone's own notes.
+        var sources = pending.Select(f => f.SourcePath).ToList();
+        var plan = OutputPathResolver.Plan(sources, OutputFolder);
+        var alreadyThere = plan.Count(p => File.Exists(p.FullPath));
+        if (alreadyThere > 0)
+        {
+            switch (_dialogs.AskOverwrite(alreadyThere))
+            {
+                case OverwriteChoice.Cancel:
+                    return;
+                case OverwriteChoice.KeepBoth:
+                    plan = OutputPathResolver.Plan(sources, OutputFolder, keepExisting: true);
+                    break;
+            }
+        }
+
         IsBusy = true;
         IsConverting = true;
         StatusMessage = Strings.ConvertingFiles;
@@ -397,22 +418,15 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         try
         {
             var token = _convertCts.Token;
-            var pending = Files.Where(f => f.Status is FileStatus.Pending or FileStatus.Error).ToList();
-            // One resolver per batch, so two files with the same name landing in the same output folder
-            // don't quietly overwrite each other.
-            var outputPaths = new OutputPathResolver();
             var converted = 0;
             var renamed = 0;
 
-            // Destinations first: the batch goes to the worker in one go, which is what lets one
-            // Python process handle all of them instead of paying the two-second import per file.
             var requests = new List<ConversionRequest>(pending.Count);
-            foreach (var file in pending)
+            for (var i = 0; i < pending.Count; i++)
             {
-                file.ErrorMessage = null;
-                var destination = outputPaths.For(file.SourcePath, OutputFolder);
-                if (destination.Renamed) renamed++;
-                requests.Add(ConversionRequest.FromFile(file.SourcePath, destination.FullPath));
+                pending[i].ErrorMessage = null;
+                if (plan[i].Renamed) renamed++;
+                requests.Add(ConversionRequest.FromFile(pending[i].SourcePath, plan[i].FullPath));
             }
 
             var index = 0;

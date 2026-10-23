@@ -84,6 +84,17 @@ Nothing on your computer was changed. Would you like to open the download page a
   <data name="OpenLinkFailedTitle" xml:space="preserve"><value>Couldn't open your browser. The address is:</value></data>
   <data name="RestartFailedTitle" xml:space="preserve"><value>MdPipe was updated</value></data>
   <data name="RestartFailedBody" xml:space="preserve"><value>The update was installed, but the new version wouldn't start from here. Close MdPipe and open it again.</value></data>
+  <data name="OverwriteTitle" xml:space="preserve"><value>Some files are already there</value></data>
+  <data name="OverwriteBodyOne" xml:space="preserve"><value>One of these documents already has a Markdown file with the same name next to it.
+
+Yes: replace it.
+No: keep it and save the new one under another name.
+Cancel: don't convert.</value></data>
+  <data name="OverwriteBody" xml:space="preserve"><value>{0} of these documents already have a Markdown file with the same name next to them.
+
+Yes: replace them.
+No: keep them and save the new ones under another name.
+Cancel: don't convert.</value></data>
   <data name="UpdateMightFix" xml:space="preserve"><value>MdPipe {0} is out and might fix this. You have {1}.</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Get it</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Hide this until next time</value></data>

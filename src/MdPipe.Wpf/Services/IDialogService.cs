@@ -2,6 +2,8 @@ namespace MdPipe.Wpf.Services;
 
 public enum DialogKind { Information, Warning, Error }
 
+public enum OverwriteChoice { Replace, KeepBoth, Cancel }
+
 /// <summary>
 /// Everything the view model needs from Windows itself. Behind an interface so tests can check what
 /// was said instead of hanging on a modal box nobody is there to dismiss.
@@ -12,6 +14,9 @@ public interface IDialogService
 
     /// <returns>True if the user agreed.</returns>
     bool Confirm(string message, string title);
+
+    /// <summary>Some of the Markdown files a batch would write are already there.</summary>
+    OverwriteChoice AskOverwrite(int count);
 
     void OpenLink(string url);
 

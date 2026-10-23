@@ -105,13 +105,14 @@ public static class ConvertCommand
 
             // Destinations are worked out up front so the whole batch can go to the worker in one go,
             // which is what lets a single Python process serve all of them.
-            var outputPaths = new OutputPathResolver();
+            var plan = toStdout ? null : OutputPathResolver.Plan(resolution.Files, outputFolder);
             var destinations = new List<OutputPath?>(resolution.Files.Count);
             var requests = new List<ConversionRequest>(resolution.Files.Count);
             var renamed = 0;
 
-            foreach (var file in resolution.Files)
+            for (var i = 0; i < resolution.Files.Count; i++)
             {
+                var file = resolution.Files[i];
                 OutputPath? destination = null;
                 if (!toStdout)
                 {
@@ -119,7 +120,7 @@ public static class ConvertCommand
                     // through the resolver, which keeps a batch from writing twice to the same name.
                     destination = outputFolder is null && output is not null
                         ? new OutputPath(Path.GetFullPath(output), false)
-                        : outputPaths.For(file, outputFolder);
+                        : plan![i];
                     if (destination.Renamed) renamed++;
                 }
 
