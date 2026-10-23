@@ -5,7 +5,10 @@ using MdPipe.Core.Exceptions;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Models;
 using MdPipe.Core.Services;
+using MdPipe.Infrastructure.Logging;
 using MdPipe.Wpf.Mvvm;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using MdPipe.Wpf.Resources;
 using MdPipe.Wpf.Services;
 
@@ -32,6 +35,7 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
     private readonly FormatCatalogProvider _formats;
     private readonly IDialogService _dialogs;
     private readonly string? _runningVersion;
+    private readonly ILogger _logger;
     private bool _includeEverything;
 
     public MainViewModel(
@@ -44,8 +48,10 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         AppUpdateService updates,
         IAppUpdateInstaller updateInstaller,
         UserSettings settings,
-        string? runningVersion = null)
+        string? runningVersion = null,
+        ILogger<MainViewModel>? logger = null)
     {
+        _logger = logger ?? NullLogger<MainViewModel>.Instance;
         _setupOrchestrator = setupOrchestrator;
         _converter = converter;
         _environmentManager = environmentManager;
@@ -219,40 +225,44 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
             announced = result.App;
             runFinished = true;
         }
-        catch (PythonNotFoundException)
+        catch (PythonNotFoundException ex)
         {
+            _logger.LogWarning(ex, "No usable Python and none could be set up.");
             IsReady = false;
             StatusMessage = Strings.PythonMissingStatus;
             _dialogs.ShowMessage(Strings.PythonMissingBody, Strings.PythonMissingTitle, DialogKind.Warning);
         }
         catch (PythonEnvironmentException ex)
         {
+            _logger.LogError(ex, "Setting up the environment failed.");
             if (!await UsableEnvironmentSurvivedAsync())
             {
                 IsReady = false;
                 StatusMessage = Strings.SetupUnfinishedStatus;
                 _dialogs.ShowMessage(
-                    string.Format(Strings.SetupUnfinishedBody, ex.Message),
+                    string.Format(Strings.SetupUnfinishedBody, ex.Message) + LogHint,
                     Strings.SetupUnfinishedTitle, DialogKind.Warning);
             }
         }
         catch (MdPipeException ex)
         {
+            _logger.LogError(ex, "Preparing MarkItDown failed.");
             if (!await UsableEnvironmentSurvivedAsync())
             {
                 IsReady = false;
                 StatusMessage = Strings.PrepareFailedStatus;
-                _dialogs.ShowMessage(ex.Message, Strings.PrepareFailedTitle, DialogKind.Error);
+                _dialogs.ShowMessage(ex.Message + LogHint, Strings.PrepareFailedTitle, DialogKind.Error);
             }
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Setup failed unexpectedly.");
             if (!await UsableEnvironmentSurvivedAsync())
             {
                 IsReady = false;
                 StatusMessage = Strings.SetupFailedStatus;
                 _dialogs.ShowMessage(
-                    string.Format(Strings.SetupFailedBody, ex.Message),
+                    string.Format(Strings.SetupFailedBody, ex.Message) + LogHint,
                     Strings.SetupUnfinishedTitle, DialogKind.Error);
             }
         }
@@ -512,6 +522,9 @@ public sealed class MainViewModel : ObservableObject, IUpdateHost
         if (!string.IsNullOrEmpty(folder))
             _dialogs.OpenFolder(folder);
     }
+
+    /// <summary>Where to find the details, added to every dialog about something going wrong.</summary>
+    private static string LogHint => string.Format(Strings.LogHint, FileLoggerProvider.DefaultPath);
 
     /// <summary>Picks the singular or the plural sentence. Both languages use the singular for one only.</summary>
     private static string Count(int n, string one, string many) => n == 1 ? one : string.Format(many, n);

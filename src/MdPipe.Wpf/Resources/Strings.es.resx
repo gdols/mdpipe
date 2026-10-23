@@ -95,6 +95,9 @@ Cancelar: no convertir.</value></data>
 Sí: reemplazarlos.
 No: conservarlos y guardar los nuevos con otro nombre.
 Cancelar: no convertir.</value></data>
+  <data name="LogHint" xml:space="preserve"><value>
+
+Los detalles se guardan en {0}</value></data>
   <data name="UpdateMightFix" xml:space="preserve"><value>Ha salido MdPipe {0} y quizá arregle esto. Tú tienes la {1}.</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Descárgala</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Ocultar hasta la próxima vez</value></data>

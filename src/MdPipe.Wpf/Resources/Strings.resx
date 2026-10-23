@@ -95,6 +95,9 @@ Cancel: don't convert.</value></data>
 Yes: replace them.
 No: keep them and save the new ones under another name.
 Cancel: don't convert.</value></data>
+  <data name="LogHint" xml:space="preserve"><value>
+
+The details are saved in {0}</value></data>
   <data name="UpdateMightFix" xml:space="preserve"><value>MdPipe {0} is out and might fix this. You have {1}.</value></data>
   <data name="UpdateGetIt" xml:space="preserve"><value>Get it</value></data>
   <data name="UpdateDismiss" xml:space="preserve"><value>Hide this until next time</value></data>

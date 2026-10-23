@@ -3,6 +3,7 @@ using System.Windows;
 using MdPipe.Core.Interfaces;
 using MdPipe.Core.Services;
 using MdPipe.Infrastructure.DependencyInjection;
+using MdPipe.Infrastructure.Logging;
 using MdPipe.Wpf.Services;
 using MdPipe.Wpf.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,8 +31,13 @@ public partial class App : Application
         _host = Host.CreateDefaultBuilder()
             .ConfigureLogging(logging =>
             {
+                // A small file in %APPDATA%\mdpipe, so a failure leaves something to attach to an issue.
+                // The framework's own chatter (every HTTP request, the host starting) stays out.
                 logging.ClearProviders();
-                logging.SetMinimumLevel(LogLevel.Warning);
+                logging.SetMinimumLevel(LogLevel.Information);
+                logging.AddFilter("Microsoft", LogLevel.Warning);
+                logging.AddFilter("System", LogLevel.Warning);
+                logging.AddProvider(new FileLoggerProvider());
             })
             .ConfigureServices(services =>
             {
@@ -48,7 +54,8 @@ public partial class App : Application
                     sp.GetRequiredService<AppUpdateService>(),
                     sp.GetRequiredService<IAppUpdateInstaller>(),
                     sp.GetRequiredService<UserSettings>(),
-                    RunningVersion));
+                    RunningVersion,
+                    sp.GetRequiredService<ILogger<MainViewModel>>()));
                 services.AddSingleton<MainWindow>();
             })
             .Build();
@@ -58,10 +65,16 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        var log = _host.Services.GetRequiredService<ILogger<App>>();
+        log.LogInformation("MdPipe {Version} starting on {OS}, {Culture}.",
+            RunningVersion, Environment.OSVersion.VersionString, System.Globalization.CultureInfo.CurrentUICulture.Name);
+
         DispatcherUnhandledException += (_, args) =>
         {
+            log.LogError(args.Exception, "Unexpected error.");
             MessageBox.Show(
-                "An unexpected error occurred:\n\n" + args.Exception.Message,
+                "An unexpected error occurred:\n\n" + args.Exception.Message +
+                string.Format(MdPipe.Wpf.Resources.Strings.LogHint, FileLoggerProvider.DefaultPath),
                 "MdPipe", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };

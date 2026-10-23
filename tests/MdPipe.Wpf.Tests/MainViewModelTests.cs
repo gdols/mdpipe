@@ -294,6 +294,19 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task WhenSetupFails_TheDialogSaysWhereTheDetailsAre()
+    {
+        // The dialog used to be all there was to send; now there is a log file, and it says where.
+        _environment.ThrowOnSetup = new PythonEnvironmentException("pip gave up");
+        var vm = BuildSut();
+
+        await vm.InitializeAsync();
+
+        _dialogs.Messages.Should().ContainSingle().Which.Message
+            .Should().Contain("pip gave up").And.Contain("mdpipe.log");
+    }
+
+    [Fact]
     public async Task FilesDroppedWhileTheEnvironmentPrepares_StillGetAdded()
     {
         // The first run spends minutes downloading Python and MarkItDown. A drop during that used to
