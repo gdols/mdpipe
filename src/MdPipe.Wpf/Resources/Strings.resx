@@ -37,7 +37,7 @@
   <data name="Tagline" xml:space="preserve"><value>Convert your documents to Markdown. Hassle-free.</value></data>
   <data name="Reinstall" xml:space="preserve"><value>Reinstall</value></data>
   <data name="DropTitle" xml:space="preserve"><value>Drag your files here</value></data>
-  <data name="DropSubtitle" xml:space="preserve"><value>or click to choose them  ·  PDF, Word, Excel, PowerPoint, HTML, images…</value></data>
+  <data name="DropSubtitle" xml:space="preserve"><value>or click to choose them  ·  PDF, Word, Excel, PowerPoint, HTML, Outlook…</value></data>
   <data name="NoFilesYet" xml:space="preserve"><value>No files added yet.</value></data>
   <data name="TryEveryFile" xml:space="preserve"><value>Try every file in a folder, not just known formats</value></data>
   <data name="TryEveryFileTip" xml:space="preserve"><value>Useful for files with a wrong or missing extension. The engine decides by what is inside.</value></data>

@@ -186,6 +186,24 @@ public sealed class MarkItDownConverterBatchTests : IDisposable
         (await File.ReadAllTextAsync(output)).Should().Be("# hecho");
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("  \n\n ")]
+    public async Task AnEmptyResult_IsNotAConversion(string markdown)
+    {
+        // What MarkItDown gives back for an image or a scanned PDF. It used to be written out and
+        // marked as converted: a green tick on an empty file.
+        using var worker = FakeWorker.Returning(_dir, markdown);
+        var output = Path.Combine(_dir, "out", "scan.md");
+
+        var results = await RunAsync(
+            Converter(worker), [ConversionRequest.FromFile(Document("scan.pdf"), output)]);
+
+        results[0].Success.Should().BeFalse();
+        results[0].ErrorMessage.Should().Contain("No text was found");
+        File.Exists(output).Should().BeFalse("an empty file is not worth leaving behind");
+    }
+
     [Fact]
     public async Task WhenTheResultCannotBeSaved_ItSaysSoRatherThanClaimingSuccess()
     {

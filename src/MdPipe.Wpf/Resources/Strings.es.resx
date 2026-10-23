@@ -37,7 +37,7 @@
   <data name="Tagline" xml:space="preserve"><value>Convierte tus documentos a Markdown. Sin complicaciones.</value></data>
   <data name="Reinstall" xml:space="preserve"><value>Reinstalar</value></data>
   <data name="DropTitle" xml:space="preserve"><value>Arrastra aquí tus archivos</value></data>
-  <data name="DropSubtitle" xml:space="preserve"><value>o haz clic para elegirlos  ·  PDF, Word, Excel, PowerPoint, HTML, imágenes…</value></data>
+  <data name="DropSubtitle" xml:space="preserve"><value>o haz clic para elegirlos  ·  PDF, Word, Excel, PowerPoint, HTML, Outlook…</value></data>
   <data name="NoFilesYet" xml:space="preserve"><value>Todavía no has añadido archivos.</value></data>
   <data name="TryEveryFile" xml:space="preserve"><value>Intentar con todos los archivos de la carpeta, no solo los formatos conocidos</value></data>
   <data name="TryEveryFileTip" xml:space="preserve"><value>Útil para archivos con la extensión equivocada o sin extensión. El motor decide por el contenido.</value></data>

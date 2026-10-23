@@ -15,9 +15,9 @@ public sealed class FormatCatalogProvider
         EngineVersion: "bundled list",
         Extensions:
         [
-            ".atom", ".csv", ".docx", ".epub", ".htm", ".html", ".ipynb", ".jpeg", ".jpg", ".json",
-            ".jsonl", ".m4a", ".markdown", ".md", ".mp3", ".mp4", ".msg", ".pdf", ".png", ".pptx",
-            ".rss", ".text", ".txt", ".wav", ".xls", ".xlsx", ".xml", ".zip"
+            ".atom", ".csv", ".docx", ".epub", ".htm", ".html", ".ipynb", ".json", ".jsonl",
+            ".markdown", ".md", ".msg", ".pdf", ".pptx", ".rss", ".text", ".txt", ".xls", ".xlsx",
+            ".xml", ".zip"
         ],
         Converters: [],
         IsBaseline: true);
