@@ -156,9 +156,10 @@ public static class ConvertCommand
 
             if (resolution.Files.Count > 1)
             {
+                var files = converted == 1 ? "1 file" : $"{converted} files";
                 var summary = failed == 0
-                    ? $"Converted {converted} file(s)."
-                    : $"Converted {converted} file(s), {failed} failed.";
+                    ? $"Converted {files}."
+                    : $"Converted {files}, {failed} failed.";
                 if (renamed > 0)
                     summary += $" {renamed} renamed to avoid overwriting another.";
                 Console.WriteLine(summary);

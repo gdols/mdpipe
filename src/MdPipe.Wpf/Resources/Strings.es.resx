@@ -54,13 +54,18 @@
   <data name="Reinstalling" xml:space="preserve"><value>Reinstalando el entorno…</value></data>
   <data name="ReadyWithVersion" xml:space="preserve"><value>Listo · MarkItDown {0}</value></data>
   <data name="ConvertingFiles" xml:space="preserve"><value>Convirtiendo archivos…</value></data>
-  <data name="DoneCount" xml:space="preserve"><value>Hecho · {0} archivo(s) convertido(s)</value></data>
-  <data name="CancelledCount" xml:space="preserve"><value>Cancelado · {0} archivo(s) convertido(s) hasta ahora</value></data>
-  <data name="FinishedWithWarnings" xml:space="preserve"><value>Terminado con avisos · {0}/{1} convertido(s)</value></data>
-  <data name="RenamedNote" xml:space="preserve"><value> · {0} renombrado(s) para no sobrescribir</value></data>
+  <data name="DoneCount" xml:space="preserve"><value>Hecho · {0} archivos convertidos</value></data>
+  <data name="DoneCountOne" xml:space="preserve"><value>Hecho · 1 archivo convertido</value></data>
+  <data name="CancelledCount" xml:space="preserve"><value>Cancelado · {0} archivos convertidos hasta ahora</value></data>
+  <data name="CancelledCountOne" xml:space="preserve"><value>Cancelado · 1 archivo convertido hasta ahora</value></data>
+  <data name="FinishedWithWarnings" xml:space="preserve"><value>Terminado con avisos · {0}/{1} convertidos</value></data>
+  <data name="RenamedNote" xml:space="preserve"><value> · {0} renombrados para no sobrescribir</value></data>
+  <data name="RenamedNoteOne" xml:space="preserve"><value> · 1 renombrado para no sobrescribir</value></data>
   <data name="Scanning" xml:space="preserve"><value>Buscando en las carpetas...</value></data>
   <data name="ScanningFound" xml:space="preserve"><value>Buscando en las carpetas... {0} archivos encontrados</value></data>
+  <data name="ScanningFoundOne" xml:space="preserve"><value>Buscando en las carpetas... 1 archivo encontrado</value></data>
   <data name="ScanCancelled" xml:space="preserve"><value>Búsqueda detenida. Se añadieron {0} archivos.</value></data>
+  <data name="ScanCancelledOne" xml:space="preserve"><value>Búsqueda detenida. Se añadió 1 archivo.</value></data>
   <data name="UpdateAvailable" xml:space="preserve"><value>Ya está disponible MdPipe {0}. Tú tienes la {1}.</value></data>
   <data name="UpdateCritical" xml:space="preserve"><value>Ya está disponible MdPipe {0}, y tu versión, la {1}, tiene un fallo conocido.</value></data>
   <data name="UpdateInstall" xml:space="preserve"><value>Actualizar ahora</value></data>
