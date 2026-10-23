@@ -1,14 +1,15 @@
 {
   "schemaVersion": 2,
-  "stableVersion": "0.1.8",
+  "stableVersion": "0.1.9",
   "compatibleVersions": [
     "0.1.5",
     "0.1.6",
     "0.1.7",
-    "0.1.8"
+    "0.1.8",
+    "0.1.9"
   ],
-  "updatedAt": "2026-09-29",
-  "notes": "0.1.8 validated on real PDF, DOCX and XLSX files: output identical to 0.1.7. Its dependencies install on Python 3.14, which 0.1.7 could not.",
+  "updatedAt": "2026-10-23",
+  "notes": "0.1.9 validated on real PDF, DOCX and XLSX files: output identical to 0.1.8. It requires certifi 2026.10.19 or later, which drops the compromised emSign roots.",
   "app": {
     "latestVersion": "0.9.0",
     "releaseUrl": "https://github.com/gdols/MdPipe/releases/tag/v0.9.0",
