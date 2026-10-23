@@ -98,9 +98,13 @@
             </StackPanel>
         </Border>
 
+        <!-- Focusable and named, so it can be reached with Tab, opened with Enter or Space, and read out. -->
         <Border Grid.Row="2" x:Name="DropZone" AllowDrop="True"
                 Drop="DropZone_Drop" DragEnter="DropZone_DragEnter" DragLeave="DropZone_DragLeave"
-                MouseLeftButtonUp="DropZone_Click"
+                MouseLeftButtonUp="DropZone_Click" KeyDown="DropZone_KeyDown"
+                Focusable="True" KeyboardNavigation.IsTabStop="True"
+                AutomationProperties.Name="{res:Str DropTitle}"
+                AutomationProperties.HelpText="{res:Str DropSubtitle}"
                 Background="{StaticResource Surface}" CornerRadius="12"
                 BorderBrush="{StaticResource Accent}" BorderThickness="2"
                 Padding="24" Margin="0,0,0,16" Cursor="Hand">
@@ -111,6 +115,11 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Opacity" Value="1" />
                             <Setter Property="Background" Value="#EFF6FF" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter Property="Opacity" Value="1" />
+                            <Setter Property="Background" Value="#EFF6FF" />
+                            <Setter Property="BorderThickness" Value="3" />
                         </Trigger>
                     </Style.Triggers>
                 </Style>

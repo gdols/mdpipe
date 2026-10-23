@@ -94,6 +94,24 @@ public sealed class WindowBindingTests : IDisposable
     }
 
     [Fact]
+    public async Task TheDropZoneCanBeReachedWithTheKeyboard()
+    {
+        // It only reacted to the mouse: no Tab stop, no Enter, and nothing for a screen reader to say.
+        var viewModel = await BuildViewModelAsync(announcing: null);
+
+        OnUiThread(() =>
+        {
+            var window = new MainWindow { DataContext = viewModel };
+            ForceLayout(window);
+            var zone = (UIElement)window.FindName("DropZone");
+
+            zone.Focusable.Should().BeTrue();
+            System.Windows.Input.KeyboardNavigation.GetIsTabStop(zone).Should().BeTrue();
+            System.Windows.Automation.AutomationProperties.GetName(zone).Should().NotBeNullOrWhiteSpace();
+        });
+    }
+
+    [Fact]
     public void TheAboutWindowOpens()
     {
         OnUiThread(() => ForceLayout(new AboutWindow()));

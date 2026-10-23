@@ -35,7 +35,16 @@ public partial class MainWindow : Window
             await viewModel.AddFilesAsync(paths);
     }
 
-    private async void DropZone_Click(object sender, MouseButtonEventArgs e)
+    private async void DropZone_Click(object sender, MouseButtonEventArgs e) => await ChooseFilesAsync();
+
+    private async void DropZone_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Enter or Key.Space)) return;
+        e.Handled = true;
+        await ChooseFilesAsync();
+    }
+
+    private async Task ChooseFilesAsync()
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
