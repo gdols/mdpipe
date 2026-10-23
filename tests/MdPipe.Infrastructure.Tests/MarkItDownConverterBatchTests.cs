@@ -190,6 +190,20 @@ public sealed class MarkItDownConverterBatchTests : IDisposable
     [InlineData("")]
     [InlineData("  \n\n ")]
     public async Task AnEmptyResult_IsNotAConversion(string markdown)
+        => await EmptyResultCheck(markdown);
+
+    [Fact]
+    public async Task AMessageTheWorkerWroteForTheUser_IsShownAsItIs()
+    {
+        // The audio refusal came out as "MarkItDown could not convert the file: MdPipe doesn't...".
+        using var worker = FakeWorker.Refusing(_dir, "MdPipe doesn't transcribe audio.", final: true);
+
+        var results = await RunAsync(Converter(worker), [ConversionRequest.FromFile(Document("voice.wav"), null)]);
+
+        results[0].ErrorMessage.Should().Be("MdPipe doesn't transcribe audio.");
+    }
+
+    private async Task EmptyResultCheck(string markdown)
     {
         // What MarkItDown gives back for an image or a scanned PDF. It used to be written out and
         // marked as converted: a green tick on an empty file.

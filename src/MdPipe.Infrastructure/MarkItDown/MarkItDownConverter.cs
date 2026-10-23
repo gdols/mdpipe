@@ -121,7 +121,9 @@ public sealed class MarkItDownConverter(
             var reason = response?.Error ?? "unknown error";
             logger.LogWarning("Conversion failed for {File}: {Reason}", request.SourcePath, reason);
             return (ConversionResult.Fail(
-                LegacyOfficeAdvice(request.SourcePath) ?? $"MarkItDown could not convert the file: {reason}"), false);
+                response?.Final == true
+                    ? reason
+                    : LegacyOfficeAdvice(request.SourcePath) ?? $"MarkItDown could not convert the file: {reason}"), false);
         }
 
         var markdown = response.Markdown ?? string.Empty;
@@ -189,7 +191,8 @@ public sealed class MarkItDownConverter(
             _ => null
         };
 
-    private sealed record WorkerResponse(string? Path, bool Ok, string? Markdown, string? Error);
+    /// <param name="Final">The error is MdPipe's own wording for the user, shown as it is.</param>
+    private sealed record WorkerResponse(string? Path, bool Ok, string? Markdown, string? Error, bool Final = false);
 
     /// <summary>One running worker process, and the plumbing to talk to it safely.</summary>
     private sealed class Worker : IDisposable

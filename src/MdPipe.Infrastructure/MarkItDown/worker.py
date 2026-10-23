@@ -152,8 +152,11 @@ def main():
             emit({"path": path, "ok": True, "markdown": result.text_content})
         except Exception as exc:  # noqa: BLE001 - one bad document must not end the batch
             # MarkItDown wraps what a converter raised in its own exception, so look at the text.
-            error = NO_TRANSCRIPTION if "AudioNotTranscribed" in str(exc) else one_line(exc)
-            emit({"path": path, "ok": False, "error": error})
+            # "final" tells MdPipe the message is already written for the user, not an engine error.
+            if "AudioNotTranscribed" in str(exc):
+                emit({"path": path, "ok": False, "error": NO_TRANSCRIPTION, "final": True})
+            else:
+                emit({"path": path, "ok": False, "error": one_line(exc)})
 
     return 0
 

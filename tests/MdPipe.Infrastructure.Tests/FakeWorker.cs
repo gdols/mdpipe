@@ -64,10 +64,10 @@ public sealed class FakeWorker : IConversionWorkerSource, IDisposable
         """);
 
     /// <summary>Refuses every document, the way a real converter reports a file it cannot read.</summary>
-    public static FakeWorker Refusing(string folder, string reason) => new(folder,
+    public static FakeWorker Refusing(string folder, string reason, bool final = false) => new(folder,
         $"""
         for path in paths():
-            reply(path=path, ok=False, error={ToPythonString(reason)})
+            reply(path=path, ok=False, error={ToPythonString(reason)}, final={(final ? "True" : "False")})
         """);
 
     /// <summary>Answers normally until the given file, then kills the interpreter outright.</summary>
