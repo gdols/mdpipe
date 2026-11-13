@@ -182,6 +182,40 @@ dotnet publish src/MdPipe.Wpf -c Release -r win-x64 --self-contained -p:PublishS
 - The executable is not code-signed, so new releases can trigger SmartScreen.
 - Conversion quality depends on the source format and MarkItDown.
 
+## Privacy
+
+MdPipe has no telemetry and no accounts. Your documents are converted on your
+own computer and never leave it. The log in `%APPDATA%\mdpipe` stays there too,
+unless you decide to send it to me.
+
+It only goes online to download things:
+
+- Each time the app or the CLI starts, it fetches a small file from this
+  repository on GitHub to see whether there is a newer MdPipe.
+- The first time it runs, and again when a new MdPipe needs a different
+  MarkItDown, it downloads Python from python.org, pip from bootstrap.pypa.io,
+  and MarkItDown and its dependencies from PyPI.
+- When you accept an update, it downloads the new `MdPipe.exe` from the
+  releases page here.
+
+Those sites see the request like any other download, and their own policies
+apply: [GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement),
+[python.org](https://policies.python.org/python.org/Privacy-Notice/) and
+[PyPI](https://policies.python.org/pypi.org/Privacy-Notice/).
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io),
+certificate by [SignPath Foundation](https://signpath.org).
+
+- Committers and reviewers: [Guillermo Dols](https://github.com/gdols)
+- Approvers: [Guillermo Dols](https://github.com/gdols)
+
+Changes from anyone else come in as pull requests and are reviewed before they
+are merged. Releases are built by the [release workflow](.github/workflows/release.yml)
+from a tagged commit, and every signing request is approved by hand. What MdPipe
+connects to is described under [Privacy](#privacy).
+
 ## License
 
 MdPipe is available under the MIT license. It is an independent project and is
