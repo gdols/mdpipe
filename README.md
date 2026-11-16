@@ -203,19 +203,6 @@ apply: [GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-g
 [python.org](https://policies.python.org/python.org/Privacy-Notice/) and
 [PyPI](https://policies.python.org/pypi.org/Privacy-Notice/).
 
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io),
-certificate by [SignPath Foundation](https://signpath.org).
-
-- Committers and reviewers: [Guillermo Dols](https://github.com/gdols)
-- Approvers: [Guillermo Dols](https://github.com/gdols)
-
-Changes from anyone else come in as pull requests and are reviewed before they
-are merged. Releases are built by the [release workflow](.github/workflows/release.yml)
-from a tagged commit, and every signing request is approved by hand. What MdPipe
-connects to is described under [Privacy](#privacy).
-
 ## License
 
 MdPipe is available under the MIT license. It is an independent project and is
